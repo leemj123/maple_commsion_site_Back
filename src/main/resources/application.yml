@@ -12,10 +12,10 @@ spring:
     async:
       request-timeout: 50000 #50초
   datasource:
-    driver-class-name: org.mariadb.jdbc.Driver
-    url: ENC(WeHNFNKufGitWpnyrsL4ByynpUFh/c+aNou2frtCROYOFQJNTNLFiTviLip5lD8HKy+D5x9W2ftEuJbEX9Uf12IijzFLjwBK3exYwSDY/SZWaYZd0hl/Uz46cY6Wl96mtZloyrFxHKo=)
-    username: ENC(RkAz9Pxk+SFvyxWXXpkdQg==)
-    password: ENC(/cndnWTpsw7+7fWX7ceqG0GPIwX3zHIB)
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ENC(+mHydTkG8KBDZcvVcSWzsNdkH1gQoGOT7Vkb6JFqnQwmBmOanrVRqW9EPov6COhSatqe38eWHwzLAtG4m5Dpsq7Xw3SYmM6BaxjgHK3sebl45js4iT4Kmk2ZU7zv25EA)
+    username: ENC(QAVXbsOnO+LPf2ZvqjczUk5o4I56LCbt)
+    password: ENC(sDImtLq0U5m/jnLQ1cV2+rbxZpZPqFXG)
   #  s3--
   servlet:
     multipart:
