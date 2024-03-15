@@ -11,5 +11,18 @@ public interface BoardRepository extends JpaRepository<BoardEntity, Long> {
     Page<BoardEntity> findByBoardTypeOrderByIdDesc(BoardType boardType, Pageable pageable);
     @Query("SELECT b FROM BoardEntity b WHERE NOT b.boardType = kr.henein.api.enumCustom.BoardType.Notice ORDER BY b.id DESC")
     Page<BoardEntity> findAllNotNotice(Pageable pageable);
-    //public List<BoardEntity> findAllNotNotice(@Param("boardType") BoardType boardType);
+
+    @Query(value = "SELECT * FROM henein.board " +
+            "WHERE MATCH(title, text) AGAINST (?1 IN BOOLEAN MODE)",
+            countQuery = "SELECT count(*) FROM henein.board " +
+                    "WHERE MATCH(title, text) AGAINST (?1 IN BOOLEAN MODE)",
+            nativeQuery = true)
+    Page<BoardEntity> searchByText(String key, Pageable pageable);
+
+    @Query(value = "SELECT * FROM henein.board " +
+            "WHERE henein.board.board_type = ?2 AND MATCH(title, text) AGAINST (?1 IN BOOLEAN MODE)",
+            countQuery = "SELECT count(*) FROM henein.board " +
+                    "WHERE henein.board.board_type = ?2 AND MATCH(title, text) AGAINST (?1 IN BOOLEAN MODE)",
+            nativeQuery = true)
+    Page<BoardEntity> searchByTextWithType(String key, BoardType boardType, Pageable pageable);
 }

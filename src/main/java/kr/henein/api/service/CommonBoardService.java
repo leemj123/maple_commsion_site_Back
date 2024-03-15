@@ -1,13 +1,12 @@
 package kr.henein.api.service;
 
-
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import kr.henein.api.dto.board.BoardListResponseDto;
 import kr.henein.api.dto.board.BoardRecommendDTO;
 import kr.henein.api.dto.board.BoardResponseDto;
 import kr.henein.api.dto.board.TestDto;
-import kr.henein.api.entity.BoardEntity;
-import kr.henein.api.entity.RecommendEntity;
-import kr.henein.api.entity.S3File;
-import kr.henein.api.entity.UserEntity;
+import kr.henein.api.entity.*;
+import kr.henein.api.enumCustom.BoardType;
 import kr.henein.api.enumCustom.S3EntityType;
 import kr.henein.api.error.ErrorCode;
 import kr.henein.api.error.exception.ForbiddenException;
@@ -18,6 +17,8 @@ import kr.henein.api.repository.RecommandRepository;
 import kr.henein.api.repository.S3FileRespository;
 import kr.henein.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import javax.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +39,8 @@ public class CommonBoardService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final S3FileRespository s3FileRespository;
+    private final JPAQueryFactory jpaQueryFactory;
 
-    @Transactional
     public BoardResponseDto getOneService(Long id, String authentication){
 
         BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()->{throw new NotFoundException("해당 게시글 정보가 없습니다",ErrorCode.NOT_FOUND_EXCEPTION);});
@@ -63,6 +65,35 @@ public class CommonBoardService {
         BoardResponseDto boardResponseDto = new BoardResponseDto(boardEntity,false,null);
         return boardResponseDto;
     }
+
+    public Page<BoardListResponseDto> SearchByText(char boardType, String key, int page) {
+        PageRequest pageRequest = PageRequest.of(page-1, 20);
+
+        BoardType board;
+        switch (boardType){
+            case 65: board = BoardType.Advertise; break;
+            case 66: board = BoardType.Boss; break;
+            case 69: board = null; break;
+            case 70: board = BoardType.Free; break;
+            case 72: board = BoardType.Humor; break;
+            case 73: board = BoardType.Info; break;
+            case 78:
+                board = BoardType.Notice;break;
+            default: throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);
+        }
+
+        if ( board == null ) {
+            Page<BoardEntity> result = boardRepository.searchByText(key,pageRequest);
+
+            return result.map(BoardListResponseDto::new);
+        } else {
+            Page<BoardEntity> result = boardRepository.searchByTextWithType(key, board, pageRequest);
+
+            return result.map(BoardListResponseDto::new);
+        }
+
+    }
+
     @Transactional
     public long updateService(Long id, TestDto testDto, HttpServletRequest request){
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);

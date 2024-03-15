@@ -26,6 +26,9 @@ public class BoardListResponseDto {
     private LocalDateTime createTime;
     @ApiModelProperty(value="조회수", example = "정수값", required = true)
     private int views;
+    @ApiModelProperty(value="좋아요수", example = "정수값", required = true)
+    private int recommendNum;
+
 
     public BoardListResponseDto(BoardEntity boardEntity){
         this.id = boardEntity.getId();
@@ -35,5 +38,6 @@ public class BoardListResponseDto {
         this.userName = boardEntity.getUserName();
         this.createTime = boardEntity.getCreatedDate();
         this.views = boardEntity.getViews();
+        this.recommendNum = boardEntity.getRecommend();
     }
 }

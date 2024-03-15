@@ -37,14 +37,21 @@ public class BoardController {
     })
     @GetMapping()
     @Timed(value = "board.getPage",longTask = true)
-    public Page<BoardListResponseDto> getTypeOfBoard(@RequestParam("board")char boardtype, @RequestParam("page")int page ){
-        return boardTypeOfService.getTypeOfBoard(page, boardtype);
+    public Page<BoardListResponseDto> getTypeOfBoard(@RequestParam("board")char boardType, @RequestParam("page")int page ){
+        return boardTypeOfService.getTypeOfBoard(page, boardType);
     }
     //Read
+    @Operation(summary = "id검색")
     @GetMapping("/{id}")
     @Timed(value = "board.getOne",longTask = true)
     public BoardResponseDto getOneBoard(@PathVariable Long id, @RequestHeader(value = "Authorization",required = false)String authentication){
         return commonBoardService.getOneService(id, authentication);
+    }
+//    Search
+    @Operation(summary = "2자 이상 검색 가능")
+    @GetMapping("/search")
+    public Page<BoardListResponseDto> SearchByText(@RequestParam("board")char boardType, @RequestParam ("key") String key, @RequestParam("page") int page ) {
+        return commonBoardService.SearchByText(boardType, key, page);
     }
 
     //==================================================================================
