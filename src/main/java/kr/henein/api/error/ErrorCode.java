@@ -20,6 +20,7 @@ public enum ErrorCode {
   FORBIDDEN_EXCEPTION(HttpStatus.FORBIDDEN, 403, "해당 요청에 대한 권한이 없습니다."),
   DUPLICATE_KEY(HttpStatus.FORBIDDEN, 403,  "중복된 key 값입니다."),
   NOT_EXIST(HttpStatus.NOT_FOUND,404, "존재하지 않는 유저입니다."),
+  NOT_EXIST_TYPE(HttpStatus.NOT_FOUND,404, "can't find board type"),
   NOT_FOUND(HttpStatus.NOT_FOUND,404, "페이지를 찾을 수 없습니다."),
   NOT_FOUND_EXCEPTION(HttpStatus.NOT_FOUND,404, "찾을 수 없는 요청입니다."),
 

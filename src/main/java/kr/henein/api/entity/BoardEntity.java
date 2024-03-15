@@ -3,7 +3,6 @@ package kr.henein.api.entity;
 import kr.henein.api.dto.board.BoardRecommendDTO;
 import kr.henein.api.dto.board.BoardRequestDto;
 import kr.henein.api.dto.board.TestDto;
-import kr.henein.api.enumCustom.BoardType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,8 +21,9 @@ public class BoardEntity extends BaseTimeEntity{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Long id;
-    @Column
-    private BoardType boardType;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "type", nullable = false)
+    private BoardTypeEntity type;
     @Column(nullable = false)
     private String title;
     @Column(nullable = false)
@@ -37,8 +37,7 @@ public class BoardEntity extends BaseTimeEntity{
     private int views;
     @Column
     private int recommend;
-    @Lob
-    @Column(nullable = false)
+    @Column(length = 1500, nullable = false)
     private String text;
     @OneToMany(mappedBy = "boardEntity",orphanRemoval = true)
     private List<BoardCommentNumberingEntity> numberingEntityList;
@@ -49,7 +48,7 @@ public class BoardEntity extends BaseTimeEntity{
     private boolean hasImage;
 
     @Builder
-    public BoardEntity (BoardRequestDto boardRequestDto, BoardType board, UserEntity userEntity){
+    public BoardEntity (BoardRequestDto boardRequestDto, BoardTypeEntity typeEntity, UserEntity userEntity){
         this.title = boardRequestDto.getTitle();
         if (userEntity.isAnonymous())
             this.userName = "ㅇㅇ";
@@ -57,7 +56,7 @@ public class BoardEntity extends BaseTimeEntity{
             this.userName = userEntity.getUserName();
         this.userEntity = userEntity;
         this.text = boardRequestDto.getText();
-        this.boardType = board;
+        this.type = typeEntity;
     }
 
     public void setHasImage(boolean value) {

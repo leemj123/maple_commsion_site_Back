@@ -2,7 +2,6 @@ package kr.henein.api.dto.board;
 
 
 import kr.henein.api.entity.BoardEntity;
-import kr.henein.api.enumCustom.BoardType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -16,7 +15,7 @@ import java.util.Objects;
 public class BoardResponseDto {
     private Long id;
     @ApiModelProperty(value="게시글 타입", example = "Advertise", required = true)
-    private BoardType boardType;
+    private String boardType;
     @ApiModelProperty(value="게시글 제목", example = "테스트 제목입니다.", required = true)
     private String title;
     @ApiModelProperty(value="작성자", example = "작성자", required = true)
@@ -40,7 +39,7 @@ public class BoardResponseDto {
 
     public BoardResponseDto (BoardEntity boardEntity, boolean recommended, String uid){
         this.id = boardEntity.getId();
-        this.boardType =boardEntity.getBoardType();
+        this.boardType =boardEntity.getType().getType();
         this.title = boardEntity.getTitle();
         this.commentNum = boardEntity.getCommentNum();
         this.userName = boardEntity.getUserName();

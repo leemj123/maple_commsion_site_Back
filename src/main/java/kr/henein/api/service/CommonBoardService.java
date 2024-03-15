@@ -1,23 +1,20 @@
 package kr.henein.api.service;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import kr.henein.api.dto.board.BoardListResponseDto;
-import kr.henein.api.dto.board.BoardRecommendDTO;
-import kr.henein.api.dto.board.BoardResponseDto;
-import kr.henein.api.dto.board.TestDto;
+import io.jsonwebtoken.Claims;
+import kr.henein.api.dto.board.*;
 import kr.henein.api.entity.*;
-import kr.henein.api.enumCustom.BoardType;
+
 import kr.henein.api.enumCustom.S3EntityType;
+import kr.henein.api.enumCustom.UserRole;
 import kr.henein.api.error.ErrorCode;
 import kr.henein.api.error.exception.ForbiddenException;
 import kr.henein.api.error.exception.NotFoundException;
 import kr.henein.api.jwt.JwtTokenProvider;
-import kr.henein.api.repository.BoardRepository;
-import kr.henein.api.repository.RecommandRepository;
-import kr.henein.api.repository.S3FileRespository;
-import kr.henein.api.repository.UserRepository;
+import kr.henein.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -40,7 +37,103 @@ public class CommonBoardService {
     private final UserRepository userRepository;
     private final S3FileRespository s3FileRespository;
     private final JPAQueryFactory jpaQueryFactory;
+    private final S3Service s3Service;
+    private final BoardTypeRepository boardTypeRepository;
 
+    private BoardTypeEntity getBoardType(String type) {
+        return boardTypeRepository.findByType(type).orElseThrow(()->new NotFoundException(ErrorCode.NOT_EXIST_TYPE.getMessage(), ErrorCode.NOT_EXIST_TYPE));
+    }
+    public String[] getTypeList() {
+        List<BoardTypeEntity> boardTypeEntityList = boardTypeRepository.findAll();
+
+        return boardTypeEntityList.stream()
+                .map(BoardTypeEntity::getType)
+                .toArray(String[]::new);
+    }
+
+    public Page<BoardListResponseDto> getTypeOfBoard(int page, String type){
+
+        PageRequest pageRequest = PageRequest.of(page-1, 20);
+        QBoardTypeEntity qBoardTypeEntity = QBoardTypeEntity.boardTypeEntity;
+        QBoardEntity qBoardEntity = QBoardEntity.boardEntity;
+
+        List<BoardEntity> resultEntityList = jpaQueryFactory
+                .selectFrom(qBoardEntity)
+                .join(qBoardEntity.type, qBoardTypeEntity)
+                .where(qBoardTypeEntity.type.eq(type))
+                .orderBy(qBoardEntity.id.desc())
+                .offset(pageRequest.getOffset())
+                .limit(20)
+                .fetch();
+
+        long count = jpaQueryFactory
+                .selectFrom(qBoardEntity)
+                .join(qBoardEntity.type, qBoardTypeEntity)
+                .where(qBoardTypeEntity.type.eq(type))
+                .fetchCount();
+
+        return new PageImpl<>(resultEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest,count);
+
+    }
+    public Page<BoardListResponseDto> getBoardNotNotice(int page) {
+        PageRequest pageRequest = PageRequest.of(page-1, 20);
+        BoardTypeEntity type = getBoardType("NOTICE");
+        QBoardTypeEntity qBoardTypeEntity = QBoardTypeEntity.boardTypeEntity;
+        QBoardEntity qBoardEntity = QBoardEntity.boardEntity;
+
+        List<BoardEntity> resultEntityList = jpaQueryFactory
+                .selectFrom(qBoardEntity)
+                .leftJoin(qBoardEntity.type, qBoardTypeEntity)
+                .where(qBoardEntity.type.ne(type))
+                .orderBy(qBoardEntity.id.desc())
+                .offset(pageRequest.getOffset())
+                .limit(20)
+                .fetch();
+
+        long count = jpaQueryFactory
+                .selectFrom(qBoardEntity)
+                .where(qBoardEntity.type.ne(type))
+                .fetchCount();
+
+        return new PageImpl<>(resultEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
+    }
+
+    //===================================================================================================
+    @Transactional
+    public long addTypeOfBoard(BoardRequestDto boardRequestDto, HttpServletRequest request){
+        Claims claims = jwtTokenProvider.getClaimsByRequest(request);
+        String userEmail = claims.getSubject();
+        UserRole userRole = UserRole.valueOf((String) claims.get("ROLE"));
+
+        BoardTypeEntity boardType = getBoardType(boardRequestDto.getBoardType());
+
+        if (boardType.getType().equals("NOTICE") && !userRole.equals(UserRole.ADMIN)) {
+            throw new ForbiddenException(ErrorCode.FORBIDDEN_EXCEPTION.getMessage(), ErrorCode.FORBIDDEN_EXCEPTION);
+        }
+
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
+
+        BoardEntity boardEntity = new BoardEntity(boardRequestDto,boardType, userEntity);
+        BoardEntity savedBoard = boardRepository.save(boardEntity);
+
+        //이미지 파일 첨부되어있는지 문자열 슬라이싱
+        String regex = "(https://henesys-bucket.s3.ap-northeast-2.amazonaws.com/.*?\\.jpg)";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(boardRequestDto.getText());
+
+        List<String> imagesUrl = new ArrayList<>();
+        while (matcher.find()){
+            imagesUrl.add(matcher.group(1));
+        }
+        //이미지가 있으면 해당 이미지를 사용중인거로 업데이트
+        if (!imagesUrl.isEmpty()){
+            savedBoard.setHasImage(true);
+            s3Service.changeImageInfo(imagesUrl, S3EntityType.BOARD, savedBoard.getId());
+        }
+
+        return savedBoard.getId();
+    }
+    //=============================================================================
     public BoardResponseDto getOneService(Long id, String authentication){
 
         BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()->{throw new NotFoundException("해당 게시글 정보가 없습니다",ErrorCode.NOT_FOUND_EXCEPTION);});
@@ -66,28 +159,16 @@ public class CommonBoardService {
         return boardResponseDto;
     }
 
-    public Page<BoardListResponseDto> SearchByText(char boardType, String key, int page) {
+    public Page<BoardListResponseDto> SearchByText(String type, String key, int page) {
         PageRequest pageRequest = PageRequest.of(page-1, 20);
+        BoardTypeEntity boardType = getBoardType(type);
 
-        BoardType board;
-        switch (boardType){
-            case 65: board = BoardType.Advertise; break;
-            case 66: board = BoardType.Boss; break;
-            case 69: board = null; break;
-            case 70: board = BoardType.Free; break;
-            case 72: board = BoardType.Humor; break;
-            case 73: board = BoardType.Info; break;
-            case 78:
-                board = BoardType.Notice;break;
-            default: throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);
-        }
-
-        if ( board == null ) {
+        if ( type.equals("ALL") ) {
             Page<BoardEntity> result = boardRepository.searchByText(key,pageRequest);
 
             return result.map(BoardListResponseDto::new);
         } else {
-            Page<BoardEntity> result = boardRepository.searchByTextWithType(key, board, pageRequest);
+            Page<BoardEntity> result = boardRepository.searchByTextWithType(key, boardType, pageRequest);
 
             return result.map(BoardListResponseDto::new);
         }

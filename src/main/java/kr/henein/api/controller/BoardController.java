@@ -6,7 +6,6 @@ import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.v3.oas.annotations.Operation;
 import kr.henein.api.dto.board.*;
-import kr.henein.api.service.BoardTypeOfService;
 import kr.henein.api.service.CommonBoardService;
 import kr.henein.api.service.S3Service;
 import lombok.RequiredArgsConstructor;
@@ -26,21 +25,26 @@ import java.io.IOException;
 public class BoardController {
 
     private final CommonBoardService commonBoardService;
-    private final BoardTypeOfService boardTypeOfService;
     private final S3Service s3Service;
 
 
 
     @ApiImplicitParams({
-            @ApiImplicitParam(name="board", value= "원하는 게시판 타입[ex A,B,F,I,H,N,E[entireboard]]", required = true),
+            @ApiImplicitParam(name= "type", value= "원하는 게시판- 게시판 종류는 종류 호출 api 사용해서 정확하게 or 'ALL'이면 공지제외 전체 조회", required = true),
             @ApiImplicitParam(name = "page", value = "원하는 페이지 값", required = true)
     })
     @GetMapping()
     @Timed(value = "board.getPage",longTask = true)
-    public Page<BoardListResponseDto> getTypeOfBoard(@RequestParam("board")char boardType, @RequestParam("page")int page ){
-        return boardTypeOfService.getTypeOfBoard(page, boardType);
+    public Page<BoardListResponseDto> getTypeOfBoard(@RequestParam("type") String type  , @RequestParam("page")int page ){
+        return type.equals("ALL") ? commonBoardService.getBoardNotNotice(page) : commonBoardService.getTypeOfBoard(page, type);
     }
     //Read
+    @Operation(summary = "게시판 종류 검색")
+    @GetMapping("/type-list")
+    public String[] getTypeList() {
+        return commonBoardService.getTypeList();
+    }
+
     @Operation(summary = "id검색")
     @GetMapping("/{id}")
     @Timed(value = "board.getOne",longTask = true)
@@ -50,15 +54,15 @@ public class BoardController {
 //    Search
     @Operation(summary = "2자 이상 검색 가능")
     @GetMapping("/search")
-    public Page<BoardListResponseDto> SearchByText(@RequestParam("board")char boardType, @RequestParam ("key") String key, @RequestParam("page") int page ) {
-        return commonBoardService.SearchByText(boardType, key, page);
+    public Page<BoardListResponseDto> SearchByText(@RequestParam("type")String type, @RequestParam ("key") String key, @RequestParam("page") int page ) {
+        return commonBoardService.SearchByText(type, key, page);
     }
 
     //==================================================================================
     @Operation(summary = "Json 으로 보내주세요 [보안]")
     @PostMapping() //Create
     public long addTypeOfBoard(@RequestBody BoardRequestDto boardRequestDto, HttpServletRequest request ) {
-        return boardTypeOfService.addTypeOfBoard(boardRequestDto, request);
+        return commonBoardService.addTypeOfBoard(boardRequestDto, request);
     }
     @Operation(summary = "[보안]")
     @PostMapping("/recommend")
