@@ -25,8 +25,6 @@ public class BoardEntity extends BaseTimeEntity{
     @JoinColumn(name = "type", nullable = false)
     private BoardTypeEntity type;
     @Column(nullable = false)
-    private String htmlTitle;
-    @Column(nullable = false)
     private String title;
     @Column(length = 2000, nullable = false)
     private String htmlText;
@@ -53,15 +51,14 @@ public class BoardEntity extends BaseTimeEntity{
 
     @Builder
     public BoardEntity (BoardRequestDto boardRequestDto, BoardTypeEntity typeEntity, UserEntity userEntity){
-        this.htmlTitle = boardRequestDto.getHtmlTitle();
         this.htmlText = boardRequestDto.getHtmlText();
+        this.text = boardRequestDto.getText();
         this.title = boardRequestDto.getTitle();
         if (userEntity.isAnonymous())
             this.userName = "ㅇㅇ";
         else
             this.userName = userEntity.getUserName();
         this.userEntity = userEntity;
-        this.text = boardRequestDto.getText();
         this.type = typeEntity;
     }
 
@@ -70,7 +67,6 @@ public class BoardEntity extends BaseTimeEntity{
     }
 
     public void Update(BoardUpdateDto boardUpdateDto){
-        this.htmlTitle = boardUpdateDto.getHtmlTitle();
         this.htmlText = boardUpdateDto.getHtmlText();
         this.title = boardUpdateDto.getTitle();
         this.text = boardUpdateDto.getText();

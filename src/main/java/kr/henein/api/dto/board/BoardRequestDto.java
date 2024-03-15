@@ -11,7 +11,7 @@ import javax.persistence.Lob;
 @Getter
 @Setter
 public class BoardRequestDto {
-    private String htmlTitle;
+
     private String title;
     @Lob
     private String htmlText;

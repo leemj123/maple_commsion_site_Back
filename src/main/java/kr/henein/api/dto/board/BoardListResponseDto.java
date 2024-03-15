@@ -32,7 +32,7 @@ public class BoardListResponseDto {
 
     public BoardListResponseDto(BoardEntity boardEntity){
         this.id = boardEntity.getId();
-        this.title = boardEntity.getHtmlTitle();
+        this.title = boardEntity.getTitle();
         this.boardType = boardEntity.getType().getType();
         this.commentNum = boardEntity.getCommentNum();
         this.userName = boardEntity.getUserName();

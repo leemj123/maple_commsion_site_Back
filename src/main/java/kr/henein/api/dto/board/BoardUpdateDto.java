@@ -8,7 +8,7 @@ import javax.persistence.Lob;
 @Getter
 @Service
 public class BoardUpdateDto {
-    private String htmlTitle;
+
     private String title;
     @Lob
     private String htmlText;
