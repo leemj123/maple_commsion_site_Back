@@ -40,7 +40,7 @@ public class BoardResponseDto {
     public BoardResponseDto (BoardEntity boardEntity, boolean recommended, String uid){
         this.id = boardEntity.getId();
         this.boardType =boardEntity.getType().getType();
-        this.title = boardEntity.getTitle();
+        this.title = boardEntity.getHtmlTitle();
         this.commentNum = boardEntity.getCommentNum();
         this.userName = boardEntity.getUserName();
         if (Objects.equals(uid,boardEntity.getUserEntity().getUid())) {
@@ -50,7 +50,7 @@ public class BoardResponseDto {
         this.views = boardEntity.getViews();
         this.hasImage = boardEntity.isHasImage();
         this.recommend = boardEntity.getRecommend();
-        this.text = boardEntity.getText();
+        this.text = boardEntity.getHtmlText();
         this.recommended = recommended;
     }
 }

@@ -2,7 +2,7 @@ package kr.henein.api.entity;
 
 import kr.henein.api.dto.board.BoardRecommendDTO;
 import kr.henein.api.dto.board.BoardRequestDto;
-import kr.henein.api.dto.board.TestDto;
+import kr.henein.api.dto.board.BoardUpdateDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,7 +25,13 @@ public class BoardEntity extends BaseTimeEntity{
     @JoinColumn(name = "type", nullable = false)
     private BoardTypeEntity type;
     @Column(nullable = false)
+    private String htmlTitle;
+    @Column(nullable = false)
     private String title;
+    @Column(length = 2000, nullable = false)
+    private String htmlText;
+    @Column(length = 1500, nullable = false)
+    private String text;
     @Column(nullable = false)
     private String userName;
     @Column
@@ -37,8 +43,6 @@ public class BoardEntity extends BaseTimeEntity{
     private int views;
     @Column
     private int recommend;
-    @Column(length = 1500, nullable = false)
-    private String text;
     @OneToMany(mappedBy = "boardEntity",orphanRemoval = true)
     private List<BoardCommentNumberingEntity> numberingEntityList;
     @OneToMany(mappedBy = "boardEntity", orphanRemoval = true)
@@ -49,6 +53,8 @@ public class BoardEntity extends BaseTimeEntity{
 
     @Builder
     public BoardEntity (BoardRequestDto boardRequestDto, BoardTypeEntity typeEntity, UserEntity userEntity){
+        this.htmlTitle = boardRequestDto.getHtmlTitle();
+        this.htmlText = boardRequestDto.getHtmlText();
         this.title = boardRequestDto.getTitle();
         if (userEntity.isAnonymous())
             this.userName = "ㅇㅇ";
@@ -63,9 +69,11 @@ public class BoardEntity extends BaseTimeEntity{
         this.hasImage = value;
     }
 
-    public void Update(TestDto testDto){
-        this.title = testDto.getTitle();
-        this.text = testDto.getText();
+    public void Update(BoardUpdateDto boardUpdateDto){
+        this.htmlTitle = boardUpdateDto.getHtmlTitle();
+        this.htmlText = boardUpdateDto.getHtmlText();
+        this.title = boardUpdateDto.getTitle();
+        this.text = boardUpdateDto.getText();
     }
     public void Update(BoardRecommendDTO boardRecommendDTO){
         this.recommend = boardRecommendDTO.getRecommend();

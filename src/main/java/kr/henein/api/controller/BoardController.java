@@ -77,8 +77,8 @@ public class BoardController {
 //==================================================================================
     @Operation(summary = "[보안]")
     @PutMapping("/{id}")
-    public long updateBoard(@PathVariable Long id, @RequestBody TestDto testDto, HttpServletRequest request){
-        return commonBoardService.updateService(id, testDto, request);
+    public long updateBoard(@PathVariable Long id, @RequestBody BoardUpdateDto boardUpdateDto, HttpServletRequest request){
+        return commonBoardService.updateService(id, boardUpdateDto, request);
     }
     @Operation(summary = "[보안]")
     @DeleteMapping("/{id}")

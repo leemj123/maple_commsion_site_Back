@@ -176,7 +176,7 @@ public class CommonBoardService {
     }
 
     @Transactional
-    public long updateService(Long id, TestDto testDto, HttpServletRequest request){
+    public long updateService(Long id, BoardUpdateDto boardUpdateDto, HttpServletRequest request){
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
         BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()->{throw new NotFoundException("해당 게시글 정보가 없습니다",ErrorCode.NOT_FOUND_EXCEPTION);});
         if (!boardEntity.getUserEntity().getUserEmail().equals(userEmail)){
@@ -186,7 +186,7 @@ public class CommonBoardService {
         //이미지 파일 첨부되어있는지 문자열 슬라이싱
         String regex = "(https://henesys-bucket.s3.ap-northeast-2.amazonaws.com/.*?\\.jpg)";
         Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(testDto.getText());
+        Matcher matcher = pattern.matcher(boardUpdateDto.getText());
 
         List<String> imagesUrl = new ArrayList<>();
         while (matcher.find()){
@@ -224,7 +224,7 @@ public class CommonBoardService {
             toBeRemoved.stream().forEach(s3File -> s3File.setEntityData(S3EntityType.NON_USED,id));
         }
 
-        boardEntity.Update(testDto);
+        boardEntity.Update(boardUpdateDto);
         return boardEntity.getId();
     }
     @Transactional

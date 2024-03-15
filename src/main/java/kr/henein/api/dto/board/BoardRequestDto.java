@@ -11,10 +11,12 @@ import javax.persistence.Lob;
 @Getter
 @Setter
 public class BoardRequestDto {
+    private String htmlTitle;
     private String title;
+    @Lob
+    private String htmlText;
     @Lob
     private String text;
     private String boardType;
-    //private List<MultipartFile> images;
 
 }
