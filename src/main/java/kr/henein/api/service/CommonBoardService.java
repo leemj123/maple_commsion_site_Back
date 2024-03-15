@@ -161,13 +161,13 @@ public class CommonBoardService {
 
     public Page<BoardListResponseDto> SearchByText(String type, String key, int page) {
         PageRequest pageRequest = PageRequest.of(page-1, 20);
-        BoardTypeEntity boardType = getBoardType(type);
 
         if ( type.equals("ALL") ) {
             Page<BoardEntity> result = boardRepository.searchByText(key,pageRequest);
 
             return result.map(BoardListResponseDto::new);
         } else {
+            BoardTypeEntity boardType = getBoardType(type);
             Page<BoardEntity> result = boardRepository.searchByTextWithType(key, boardType, pageRequest);
 
             return result.map(BoardListResponseDto::new);
