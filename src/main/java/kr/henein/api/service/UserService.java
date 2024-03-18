@@ -53,7 +53,7 @@ public class UserService {
 
     public UserInfoResponseDto userInfo(HttpServletRequest request){
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);});
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
 
         UserCharEntity userCharEntity = userCharRepository.findByUserEntityAndPickByUser(userEntity,true);
@@ -75,7 +75,7 @@ public class UserService {
 
     public UserDetailInfoResponseDto userDetailInfo(HttpServletRequest request) {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);});
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
 
         QBoardEntity qBoardEntity= QBoardEntity.boardEntity;
@@ -165,7 +165,7 @@ public class UserService {
         }
         //날짜 비교해서 2달 이상이면 에러
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);});
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
         userEntity.UpdateApiKey(userMapleApi.getUserApi());
         String api = "/cube?key="+apiKey;

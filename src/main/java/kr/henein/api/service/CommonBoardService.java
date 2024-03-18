@@ -136,7 +136,7 @@ public class CommonBoardService {
     //=============================================================================
     public BoardResponseDto getOneService(Long id, String authentication){
 
-        BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()->{throw new NotFoundException("해당 게시글 정보가 없습니다",ErrorCode.NOT_FOUND_EXCEPTION);});
+        BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()-> new NotFoundException("해당 게시글 정보가 없습니다", ErrorCode.NOT_FOUND_EXCEPTION));
 
         if (authentication != null){ //사용자가 이 게시판에 대해서 추천했는지에 대한 t f 적용
             authentication = authentication.substring(7);
@@ -178,7 +178,7 @@ public class CommonBoardService {
     @Transactional
     public long updateService(Long id, BoardUpdateDto boardUpdateDto, HttpServletRequest request){
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()->{throw new NotFoundException("해당 게시글 정보가 없습니다",ErrorCode.NOT_FOUND_EXCEPTION);});
+        BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()-> new NotFoundException("해당 게시글 정보가 없습니다", ErrorCode.NOT_FOUND_EXCEPTION));
         if (!boardEntity.getUserEntity().getUserEmail().equals(userEmail)){
             throw new ForbiddenException("게시글 수정 권한이 없습니다.",ErrorCode.FORBIDDEN_EXCEPTION);
         }
@@ -230,7 +230,7 @@ public class CommonBoardService {
     @Transactional
     public String deleteService(Long id, HttpServletRequest request ){
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()->{throw new NotFoundException("해당 게시글 정보가 없습니다",ErrorCode.NOT_FOUND_EXCEPTION);});
+        BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()-> new NotFoundException("해당 게시글 정보가 없습니다", ErrorCode.NOT_FOUND_EXCEPTION));
         if (!boardEntity.getUserEntity().getUserEmail().equals(userEmail)){
             throw new ForbiddenException("게시글 수정 권한이 없습니다.",ErrorCode.FORBIDDEN_EXCEPTION);
         }
@@ -243,9 +243,9 @@ public class CommonBoardService {
     }
     @Transactional
     public String recommendThisBoard(Long id, HttpServletRequest request ){
-        BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()->{throw new NotFoundException("해당 게시글 정보가 없습니다",ErrorCode.NOT_FOUND_EXCEPTION);});
+        BoardEntity boardEntity = boardRepository.findById(id).orElseThrow(()-> new NotFoundException("해당 게시글 정보가 없습니다", ErrorCode.NOT_FOUND_EXCEPTION));
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);});
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
         RecommendEntity recommendEntity = recommendRepository.findByBoardEntityAndUserEntity(boardEntity,userEntity);
         //추천 DB에 없는 인원일때 ( 해당 게시글에 처음 추천을 누른 유저일시 )
