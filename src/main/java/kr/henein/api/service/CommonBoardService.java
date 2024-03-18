@@ -32,10 +32,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CommonBoardService {
     private final BoardRepository boardRepository;
-    private final RecommandRepository recommandRepository;
+    private final RecommendRepository recommendRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
-    private final S3FileRespository s3FileRespository;
+    private final S3FileRepository s3FileRepository;
     private final JPAQueryFactory jpaQueryFactory;
     private final S3Service s3Service;
     private final BoardTypeRepository boardTypeRepository;
@@ -147,7 +147,7 @@ public class CommonBoardService {
 
             boardEntity.UpdateView();
 
-            RecommendEntity recommend = recommandRepository.findByBoardEntityAndUserEntity(boardEntity, userEntity);
+            RecommendEntity recommend = recommendRepository.findByBoardEntityAndUserEntity(boardEntity, userEntity);
             if ( recommend == null){
                 BoardResponseDto boardResponseDto = new BoardResponseDto(boardEntity,false, userEntity.getUid());
                 return boardResponseDto;
@@ -194,7 +194,7 @@ public class CommonBoardService {
         }
         //이미지가 없으면 연결되어 있던 사진entity들 non_use로 처리
         if(imagesUrl.isEmpty() && boardEntity.isHasImage()){
-            List<S3File> fileList = s3FileRespository.findAllByS3EntityTypeAndTypeId(S3EntityType.BOARD,id);
+            List<S3File> fileList = s3FileRepository.findAllByS3EntityTypeAndTypeId(S3EntityType.BOARD,id);
             fileList.stream().forEach(s3File -> s3File.setEntityData(S3EntityType.NON_USED,null));
             boardEntity.setHasImage(false);
         }
@@ -205,10 +205,10 @@ public class CommonBoardService {
         //4. 행동 수행
         else if (imagesUrl != null){
             boardEntity.setHasImage(true);
-            List<S3File> savedList = s3FileRespository.findAllByS3EntityTypeAndTypeId(S3EntityType.BOARD,id);
+            List<S3File> savedList = s3FileRepository.findAllByS3EntityTypeAndTypeId(S3EntityType.BOARD,id);
             List<S3File> findList = new ArrayList<>();
             for (int i = 0; i < imagesUrl.size();i++){
-                findList.add(s3FileRespository.findByFileUrl(imagesUrl.get(i)));
+                findList.add(s3FileRepository.findByFileUrl(imagesUrl.get(i)));
             }
             // 이런 비교를 위해서는 Set이 좋다
             Set<S3File> savedSet = new HashSet<>(savedList);
@@ -235,7 +235,7 @@ public class CommonBoardService {
             throw new ForbiddenException("게시글 수정 권한이 없습니다.",ErrorCode.FORBIDDEN_EXCEPTION);
         }
         //게시글에 저장되어있던 사진들 전부 미사용으로 전환
-        List<S3File> fileList = s3FileRespository.findAllByS3EntityTypeAndTypeId(S3EntityType.BOARD,id);
+        List<S3File> fileList = s3FileRepository.findAllByS3EntityTypeAndTypeId(S3EntityType.BOARD,id);
         fileList.stream().forEach(s3File -> s3File.setEntityData(S3EntityType.NON_USED, null));
         boardRepository.delete(boardEntity);
 
@@ -247,7 +247,7 @@ public class CommonBoardService {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
         UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);});
 
-        RecommendEntity recommendEntity = recommandRepository.findByBoardEntityAndUserEntity(boardEntity,userEntity);
+        RecommendEntity recommendEntity = recommendRepository.findByBoardEntityAndUserEntity(boardEntity,userEntity);
         //추천 DB에 없는 인원일때 ( 해당 게시글에 처음 추천을 누른 유저일시 )
         if (null == recommendEntity){
             RecommendEntity recommend = RecommendEntity.builder()
@@ -258,7 +258,7 @@ public class CommonBoardService {
             BoardRecommendDTO boardRecommendDTO = new BoardRecommendDTO(boardEntity.getRecommend()+1);
             boardEntity.Update(boardRecommendDTO);
 
-            recommandRepository.save(recommend);
+            recommendRepository.save(recommend);
             return "추천 완료";
         }
         //이미 추천한 흔적이 있는 유저들

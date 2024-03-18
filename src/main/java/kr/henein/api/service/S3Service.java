@@ -9,7 +9,7 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.util.IOUtils;
 import kr.henein.api.entity.S3File;
 import kr.henein.api.enumCustom.S3EntityType;
-import kr.henein.api.repository.S3FileRespository;
+import kr.henein.api.repository.S3FileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ public class S3Service {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
     private final AmazonS3 amazonS3;
-    private final S3FileRespository s3FileRespository;
+    private final S3FileRepository s3FileRepository;
 
     public String uploadImageBeforeSavedBoardEntity(MultipartFile image) throws IOException {
         List<MultipartFile> s3FileList = new ArrayList<>();
@@ -35,7 +35,7 @@ public class S3Service {
         List<S3File> resultList = this.existsFiles(s3FileList);
         //아직 글쓰기 중인 유저가 저장한 이미지로 연결되지 않은 것으로 표기함. 추후 글쓰기 완료되면 바꿔야함
         resultList.get(0).setEntityData(S3EntityType.NON_USED, null);
-        s3FileRespository.save(resultList.get(0));
+        s3FileRepository.save(resultList.get(0));
 
         return resultList.get(0).getFileUrl();
     }
@@ -44,14 +44,14 @@ public class S3Service {
 
         s3FileList.add(image);
         List<S3File> newS3List = this.existsFiles(s3FileList);
-        List<S3File> oldS3File = s3FileRespository.findAllByS3EntityTypeAndTypeId(S3EntityType.USER,id);
+        List<S3File> oldS3File = s3FileRepository.findAllByS3EntityTypeAndTypeId(S3EntityType.USER,id);
 
         if (oldS3File.size()!=0) {
             oldS3File.get(0).setEntityData(S3EntityType.NON_USED,null);
         }
 
         newS3List.get(0).setEntityData(S3EntityType.USER, id);
-        s3FileRespository.save(newS3List.get(0));
+        s3FileRepository.save(newS3List.get(0));
     }
 
     private List<S3File> existsFiles(List<MultipartFile> imageList) throws IOException {
@@ -77,7 +77,7 @@ public class S3Service {
     public void changeImageInfo(List<String> imageNameList, S3EntityType s3EntityType, Long typeId ){
         List<S3File> s3FileList = new ArrayList<>();
         for (int i = 0; i < imageNameList.toArray().length; i++){
-            S3File s3File = s3FileRespository.findByFileUrl(imageNameList.get(i));
+            S3File s3File = s3FileRepository.findByFileUrl(imageNameList.get(i));
             s3FileList.add(s3File);
         }
         s3FileList.stream().forEach(s3File -> s3File.setEntityData(s3EntityType, typeId));
