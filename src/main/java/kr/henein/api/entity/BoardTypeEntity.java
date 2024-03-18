@@ -1,5 +1,6 @@
 package kr.henein.api.entity;
 
+import kr.henein.api.enumCustom.BoardType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -17,14 +18,21 @@ public class BoardTypeEntity {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String type;
+    private String name;
 
-    @OneToMany(mappedBy = "type", orphanRemoval = false)
+    @Column(nullable = false)
+    private BoardType boardType;
+
+    @Column(nullable = false, unique = true)
+    private int numbering;
+
+    @OneToMany(mappedBy = "type")
     private List<BoardEntity> boardEntityList;
 
-    public BoardTypeEntity (String type) {
-        this.type = type;
-        boardEntityList = new ArrayList<>();
+    public BoardTypeEntity (String name, BoardType boardType, int numbering) {
+        this.name = name;
+        this.boardType = boardType;
+        this.numbering = numbering;
+        this.boardEntityList = new ArrayList<>();
     }
-
 }

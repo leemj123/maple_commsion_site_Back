@@ -39,7 +39,7 @@ public class BoardResponseDto {
 
     public BoardResponseDto (BoardEntity boardEntity, boolean recommended, String uid){
         this.id = boardEntity.getId();
-        this.boardType =boardEntity.getType().getType();
+        this.boardType =boardEntity.getType().getName();
         this.title = boardEntity.getTitle();
         this.commentNum = boardEntity.getCommentNum();
         this.userName = boardEntity.getUserName();

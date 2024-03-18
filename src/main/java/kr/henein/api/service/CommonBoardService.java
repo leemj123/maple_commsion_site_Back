@@ -5,6 +5,7 @@ import io.jsonwebtoken.Claims;
 import kr.henein.api.dto.board.*;
 import kr.henein.api.entity.*;
 
+import kr.henein.api.enumCustom.BoardType;
 import kr.henein.api.enumCustom.S3EntityType;
 import kr.henein.api.enumCustom.UserRole;
 import kr.henein.api.error.ErrorCode;
@@ -41,13 +42,14 @@ public class CommonBoardService {
     private final BoardTypeRepository boardTypeRepository;
 
     private BoardTypeEntity getBoardType(String type) {
-        return boardTypeRepository.findByType(type).orElseThrow(()->new NotFoundException(ErrorCode.NOT_EXIST_TYPE.getMessage(), ErrorCode.NOT_EXIST_TYPE));
+        return boardTypeRepository.findByName(type).orElseThrow(()->new NotFoundException(ErrorCode.NOT_EXIST_TYPE.getMessage(), ErrorCode.NOT_EXIST_TYPE));
     }
     public String[] getTypeList() {
-        List<BoardTypeEntity> boardTypeEntityList = boardTypeRepository.findAll();
+
+        List<BoardTypeEntity> boardTypeEntityList = boardTypeRepository.findAllByBoardType(BoardType.Board);
 
         return boardTypeEntityList.stream()
-                .map(BoardTypeEntity::getType)
+                .map(BoardTypeEntity::getName)
                 .toArray(String[]::new);
     }
 
@@ -97,6 +99,76 @@ public class CommonBoardService {
 
         return new PageImpl<>(resultEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
     }
+    public Page<BoardListResponseDto> SearchByText(String type, String key, int page) {
+        PageRequest pageRequest = PageRequest.of(page-1, 20);
+
+        if ( type.equals("ALL") ) {
+            Page<BoardEntity> result = boardRepository.searchByText(key,pageRequest);
+
+            return result.map(BoardListResponseDto::new);
+        } else {
+            BoardTypeEntity boardType = getBoardType(type);
+            Page<BoardEntity> result = boardRepository.searchByTextWithType(key, boardType, pageRequest);
+
+            return result.map(BoardListResponseDto::new);
+        }
+    }
+
+    public List<MainPageResponseDTO> getMainPageService() {
+        List<MainPageResponseDTO> resultList = new ArrayList<>();
+
+        QBoardEntity qBoardEntity = QBoardEntity.boardEntity;
+        QBoardTypeEntity qBoardTypeEntity = QBoardTypeEntity.boardTypeEntity;
+        {
+            List<BoardEntity> AllType = jpaQueryFactory
+                    .selectFrom(qBoardEntity)
+                    .orderBy(qBoardEntity.id.desc())
+                    .limit(8)
+                    .fetch();
+
+            MainPageResponseDTO AllTypeDto = MainPageResponseDTO.builder()
+                    .name("ALL")
+                    .boardType(BoardType.Board)
+                    .numbering(-1)
+                    .simpleBoardList(AllType.stream().map(SimpleBoardResponseDTO::new).collect(Collectors.toList()))
+                    .build();
+
+            resultList.add(AllTypeDto);
+        }
+
+        List<BoardTypeEntity> boardTypeEntityList = boardTypeRepository.findAllByOrderByNumberingAsc();
+
+        for (BoardTypeEntity b: boardTypeEntityList) {
+            if (b.getBoardType().equals(BoardType.Layer)) {
+                MainPageResponseDTO layerDto = MainPageResponseDTO.builder()
+                        .boardType(BoardType.Layer)
+                        .numbering(b.getNumbering())
+                        .build();
+
+                resultList.add(layerDto);
+            }
+            List<BoardEntity> typeByBoard = jpaQueryFactory
+                    .selectFrom(qBoardEntity)
+                    .innerJoin(qBoardEntity.type, qBoardTypeEntity)
+                    .where(qBoardEntity.type.eq(b))
+                    .orderBy(qBoardEntity.id.desc())
+                    .limit(8)
+                    .fetch();
+
+            MainPageResponseDTO typeDto = MainPageResponseDTO.builder()
+                    .name(b.getName())
+                    .boardType(BoardType.Board)
+                    .numbering(-1)
+                    .simpleBoardList(typeByBoard.stream().map(SimpleBoardResponseDTO::new).collect(Collectors.toList()))
+                    .build();
+
+            resultList.add(typeDto);
+        }
+
+
+        return resultList;
+    }
+
 
     //===================================================================================================
     @Transactional
@@ -107,7 +179,7 @@ public class CommonBoardService {
 
         BoardTypeEntity boardType = getBoardType(boardRequestDto.getBoardType());
 
-        if (boardType.getType().equals("NOTICE") && !userRole.equals(UserRole.ADMIN)) {
+        if (boardType.getName().equals("NOTICE") && !userRole.equals(UserRole.ADMIN)) {
             throw new ForbiddenException(ErrorCode.FORBIDDEN_EXCEPTION.getMessage(), ErrorCode.FORBIDDEN_EXCEPTION);
         }
 
@@ -159,21 +231,6 @@ public class CommonBoardService {
         return boardResponseDto;
     }
 
-    public Page<BoardListResponseDto> SearchByText(String type, String key, int page) {
-        PageRequest pageRequest = PageRequest.of(page-1, 20);
-
-        if ( type.equals("ALL") ) {
-            Page<BoardEntity> result = boardRepository.searchByText(key,pageRequest);
-
-            return result.map(BoardListResponseDto::new);
-        } else {
-            BoardTypeEntity boardType = getBoardType(type);
-            Page<BoardEntity> result = boardRepository.searchByTextWithType(key, boardType, pageRequest);
-
-            return result.map(BoardListResponseDto::new);
-        }
-
-    }
 
     @Transactional
     public long updateService(Long id, BoardUpdateDto boardUpdateDto, HttpServletRequest request){

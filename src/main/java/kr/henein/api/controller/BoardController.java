@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.List;
 
 @RestController()
 @RequestMapping(value = "/board")
@@ -28,6 +29,11 @@ public class BoardController {
     private final S3Service s3Service;
 
 
+    @Operation
+    @GetMapping()
+    public List<MainPageResponseDTO> getMainPage() {
+        return commonBoardService.getMainPageService();
+    }
 
     @ApiImplicitParams({
             @ApiImplicitParam(name= "type", value= "원하는 게시판- 게시판 종류는 종류 호출 api 사용해서 정확하게 or 'ALL'이면 공지제외 전체 조회", required = true),
@@ -57,13 +63,13 @@ public class BoardController {
     public Page<BoardListResponseDto> SearchByText(@RequestParam("type")String type, @RequestParam ("key") String key, @RequestParam("page") int page ) {
         return commonBoardService.SearchByText(type, key, page);
     }
-
     //==================================================================================
     @Operation(summary = "Json 으로 보내주세요 [보안]")
     @PostMapping() //Create
     public long addTypeOfBoard(@RequestBody BoardRequestDto boardRequestDto, HttpServletRequest request ) {
         return commonBoardService.addTypeOfBoard(boardRequestDto, request);
     }
+
     @Operation(summary = "[보안]")
     @PostMapping("/recommend")
     public String recommendThisBoard(@RequestBody BoardIdRequestDTO boardIdRequestDTO, HttpServletRequest request){
