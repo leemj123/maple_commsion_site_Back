@@ -56,13 +56,14 @@ public class CommonBoardService {
     public Page<BoardListResponseDto> getTypeOfBoard(int page, String type){
 
         PageRequest pageRequest = PageRequest.of(page-1, 20);
+        BoardTypeEntity boardTypeEntity = boardTypeRepository.findByName(type).orElseThrow(()->new NotFoundException(ErrorCode.NOT_EXIST_TYPE.getMessage(), ErrorCode.NOT_EXIST_TYPE));
         QBoardTypeEntity qBoardTypeEntity = QBoardTypeEntity.boardTypeEntity;
         QBoardEntity qBoardEntity = QBoardEntity.boardEntity;
 
         List<BoardEntity> resultEntityList = jpaQueryFactory
                 .selectFrom(qBoardEntity)
-                .join(qBoardEntity.type, qBoardTypeEntity)
-                .where(qBoardTypeEntity.type.eq(type))
+                .innerJoin(qBoardEntity.type, qBoardTypeEntity)
+                .where(qBoardEntity.type.eq(boardTypeEntity))
                 .orderBy(qBoardEntity.id.desc())
                 .offset(pageRequest.getOffset())
                 .limit(20)
@@ -71,7 +72,7 @@ public class CommonBoardService {
         long count = jpaQueryFactory
                 .selectFrom(qBoardEntity)
                 .join(qBoardEntity.type, qBoardTypeEntity)
-                .where(qBoardTypeEntity.type.eq(type))
+                .where(qBoardEntity.type.eq(boardTypeEntity))
                 .fetchCount();
 
         return new PageImpl<>(resultEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest,count);

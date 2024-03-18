@@ -29,8 +29,8 @@ public class BoardController {
     private final S3Service s3Service;
 
 
-    @Operation
-    @GetMapping()
+    @Operation(summary = "메인페이지 게시글 정렬정보 리턴")
+    @GetMapping("/main")
     public List<MainPageResponseDTO> getMainPage() {
         return commonBoardService.getMainPageService();
     }
