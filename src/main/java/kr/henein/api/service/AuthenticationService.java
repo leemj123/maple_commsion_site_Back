@@ -1,9 +1,8 @@
 package kr.henein.api.service;
 
-import kr.henein.api.config.WebClientConfig;
-import kr.henein.api.dto.captcha.CaptchaRequestDto;
 import kr.henein.api.dto.captcha.CaptchaResponseDto;
 import kr.henein.api.dto.login.BasicLoginRequestDto;
+import kr.henein.api.dto.login.BasicRegisterRequestDto;
 import kr.henein.api.dto.login.KakaoOAuth2User;
 import kr.henein.api.entity.UserEntity;
 import kr.henein.api.enumCustom.UserRole;
@@ -15,8 +14,6 @@ import kr.henein.api.jwt.KakaoOAuth2AccessTokenResponse;
 import kr.henein.api.jwt.KakaoOAuth2Client;
 import kr.henein.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -26,16 +23,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
-import java.io.BufferedWriter;
-import java.io.OutputStreamWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -52,8 +44,6 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final RedisService redisService;
 
-    @Value("${google.recaptcha.key.site-key}")
-    private String siteKey;
     @Value("${google.recaptcha.key.secret-key}")
     private String secretKey;
     @Value("${google.recaptcha.key.url}")
@@ -68,7 +58,7 @@ public class AuthenticationService {
 
         // rt 넣어서 검증하고 유저이름 가져오기
         String userEmail = jwtTokenProvider.refreshAccessToken(RTHeader);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new UnAuthorizedException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND);});
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new UnAuthorizedException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND));
         //db에 있는 토큰값과 넘어온 토큰이 같은지
         if (!userEntity.getRefreshToken().equals(RTHeader)){
             throw new UnAuthorizedException(ErrorCode.EXPIRED_RT.getMessage(),ErrorCode.EXPIRED_RT);
@@ -83,32 +73,54 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public ResponseEntity<String> basicLogin(BasicLoginRequestDto basicLoginRequestDto, HttpServletResponse response){
-        UserEntity userEntity = userRepository.findByUserEmail(basicLoginRequestDto.getUserEmail()).orElseThrow(()->{
-            throw new UnAuthorizedException("이메일을 확인하세요", ErrorCode.INVALID_ACCESS);});
+    public ResponseEntity<?> basicLogin(BasicLoginRequestDto basicLoginRequestDto, HttpServletResponse servletResponse){
+        UserEntity userEntity = userRepository.findByUserEmail(basicLoginRequestDto.getUserEmail()).orElseThrow(()-> new UnAuthorizedException("이메일을 확인하세요", ErrorCode.INVALID_ACCESS));
 
         if ( !passwordEncoder.matches(basicLoginRequestDto.getPassword(),userEntity.getPassword()) ) {
             throw new UnAuthorizedException("비밀번호가 틀렸습니다.",ErrorCode.INVALID_ACCESS);
         }
 
-        String AT = jwtTokenProvider.generateAccessToken(userEntity.getUserEmail(), userEntity.getUserRole());
-        String RT = jwtTokenProvider.generateRefreshToken(userEntity.getUserEmail());
-        userEntity.setRefreshToken(RT);
+        return WebClient.builder()
+                .baseUrl(url)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE) // 기본 헤더 설정
+                .build()
+                .post()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("secret", secretKey)
+                        .queryParam("response", basicLoginRequestDto.getCaptchaValue())
+                        .build())
+                .retrieve()
+                .bodyToMono(CaptchaResponseDto.class)
+                .map(response -> {
+                    if( response.isSuccess() ){
+                        String AT = jwtTokenProvider.generateAccessToken(userEntity.getUserEmail(), userEntity.getUserRole());
+                        String RT = jwtTokenProvider.generateRefreshToken(userEntity.getUserEmail());
+                        userEntity.setRefreshToken(RT);
 
-        response.setHeader("Authorization","Bearer " + AT);
-        response.setHeader("RefreshToken","Bearer "+ RT);
-        return ResponseEntity.ok("로그인 성공");
+                        servletResponse.setHeader("Authorization","Bearer " + AT);
+                        servletResponse.setHeader("RefreshToken","Bearer "+ RT);
+                        return ResponseEntity.ok().build();
+                    } else {
+                        String message = response.getErrorList().stream()
+                                .map(Objects::toString)
+                                .collect(Collectors.joining(", "));
+
+                        throw new BadRequestException(ErrorCode.CAPTCHA_FAILED.getMessage()+message, ErrorCode.CAPTCHA_FAILED);
+                    }
+                })
+                .block();
+
     }
 
     @Transactional
-    public ResponseEntity<String> basicSignUp(BasicLoginRequestDto basicLoginRequestDto, HttpServletRequest request, HttpServletResponse response){
+    public ResponseEntity<String> basicSignUp(BasicRegisterRequestDto basicRegisterRequestDto, HttpServletRequest request, HttpServletResponse response){
 
         String requestAT = jwtTokenProvider.resolveAccessToken(request);
-        if ( !redisService.verifySignUpRequest(basicLoginRequestDto.getUserEmail(), requestAT) ) {
+        if ( !redisService.verifySignUpRequest(basicRegisterRequestDto.getUserEmail(), requestAT) ) {
             throw new UnAuthorizedException("Do not match email with AT", ErrorCode.JWT_COMPLEX_ERROR);
         }
-        String AT = jwtTokenProvider.generateAccessToken(basicLoginRequestDto.getUserEmail(), UserRole.USER);
-        String RT = jwtTokenProvider.generateRefreshToken(basicLoginRequestDto.getUserEmail());
+        String AT = jwtTokenProvider.generateAccessToken(basicRegisterRequestDto.getUserEmail(), UserRole.USER);
+        String RT = jwtTokenProvider.generateRefreshToken(basicRegisterRequestDto.getUserEmail());
 
         String uid = UUID.randomUUID().toString();
 
@@ -116,10 +128,10 @@ public class AuthenticationService {
                 .userRole(UserRole.USER)
                 .userName(uid)
                 .refreshToken(RT)
-                .userEmail(basicLoginRequestDto.getUserEmail())
+                .userEmail(basicRegisterRequestDto.getUserEmail())
                 .isAnonymous(true)
                 .uid(uid)
-                .password(passwordEncoder.encode(basicLoginRequestDto.getPassword()))
+                .password(passwordEncoder.encode(basicRegisterRequestDto.getPassword()))
                 .build();
         userRepository.save(userEntity);
 
@@ -163,57 +175,5 @@ public class AuthenticationService {
         response.setHeader("RefreshToken","Bearer " + RT);
 
         return ResponseEntity.ok(tokens);
-    }
-
-    public ResponseEntity<?> validateRecaptcha (String captchaValue) {
-
-        String urI = "?secret="+secretKey+ "&response="+captchaValue;
-       return WebClient.builder()
-               .baseUrl(url)
-               .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE) // 기본 헤더 설정
-               .filter(logRequest())
-               .build()
-               .post()
-               .uri(uriBuilder -> uriBuilder
-                       .queryParam("secret", secretKey)
-                       .queryParam("response", captchaValue)
-                       .build())
-               .retrieve()
-               .bodyToMono(CaptchaResponseDto.class)
-                .map(response -> {
-                    if( response.isSuccess() ){
-                        return ResponseEntity.ok().build();
-                    } else {
-                        String message = response.getErrorList().stream()
-                                .map(Objects::toString)
-                                .collect(Collectors.joining(", "));
-                        //성공 실패시 response의 error 변수를 throw하고 싶다.
-                        throw new BadRequestException(ErrorCode.CAPTCHA_FAILED.getMessage()+message, ErrorCode.CAPTCHA_FAILED);
-                    }
-                })
-                .block();
-    }
-    private ExchangeFilterFunction logRequest() {
-        Logger logger = LoggerFactory.getLogger(WebClientConfig.class);
-        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
-            if (logger.isDebugEnabled()) {
-                StringBuilder sb = new StringBuilder("Request: \n");
-                // 요청 메서드와 URL 출력
-                sb.append(clientRequest.method().name())
-                        .append(" ")
-                        .append(clientRequest.url());
-
-                // 헤더 출력
-                clientRequest.headers().forEach((name, values) -> values.forEach(value -> sb.append("\n").append(name).append(":").append(value)));
-
-                // 요청 바디가 있다면 출력 (단순화를 위해 생략될 수 있음)
-                clientRequest.body();
-                // clientRequest.body()를 사용하여 요청 바디의 내용을 로깅할 수 있습니다.
-                // 이는 종종 추가적인 작업이 필요할 수 있습니다.
-
-                logger.debug(sb.toString());
-            }
-            return Mono.just(clientRequest);
-        });
     }
 }

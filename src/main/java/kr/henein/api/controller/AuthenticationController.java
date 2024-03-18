@@ -1,6 +1,7 @@
 package kr.henein.api.controller;
 
 import kr.henein.api.dto.login.BasicLoginRequestDto;
+import kr.henein.api.dto.login.BasicRegisterRequestDto;
 import kr.henein.api.service.AmazonSMTPService;
 import kr.henein.api.service.AuthenticationService;
 import kr.henein.api.service.UserService;
@@ -25,21 +26,20 @@ import javax.servlet.http.HttpServletResponse;
 
 public class AuthenticationController {
 
-    private final UserService userService;
     private final AuthenticationService authenticationService;
     private final AmazonSMTPService amazonSMTPService;
 
 
     //=======Local 로그인 관련
-    @Operation(summary = "로컬 로그인 userEmail,password")
+    @Operation(summary = "로컬 로그인 userEmail,password, reCAPTCHA 토큰")
     @PostMapping("/login")
-    public ResponseEntity<String> basicLogin(@RequestBody BasicLoginRequestDto basicLoginRequestDto, HttpServletResponse response) {
+    public ResponseEntity<?> basicLogin(@RequestBody BasicLoginRequestDto basicLoginRequestDto, HttpServletResponse response) {
         return authenticationService.basicLogin(basicLoginRequestDto,response);
     }
     @Operation(summary = "로컬 회원가입 userEmail,password")
     @PostMapping("/login/register")
-    public ResponseEntity<String> basicSignUp(@RequestBody BasicLoginRequestDto basicLoginRequestDto, HttpServletRequest request, HttpServletResponse response) {
-        return authenticationService.basicSignUp(basicLoginRequestDto,request, response);
+    public ResponseEntity<String> basicSignUp(@RequestBody BasicRegisterRequestDto basicRegisterRequestDto, HttpServletRequest request, HttpServletResponse response) {
+        return authenticationService.basicSignUp(basicRegisterRequestDto,request, response);
     }
     @Operation(summary = "인증 메일 발송 요청")
     @PostMapping("/mail/sender")
@@ -68,9 +68,5 @@ public class AuthenticationController {
     }
 
     //==========reCAPTCHA 관련===========
-    @Operation(summary = "reCAPTCHA 토큰 전송 API")
-    @PostMapping("/captcha")
-    public ResponseEntity<?> validateRecaptcha(String value) {
-        return authenticationService.validateRecaptcha(value);
-    }
+
 }
