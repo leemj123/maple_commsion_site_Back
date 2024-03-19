@@ -31,6 +31,6 @@ public class ComplainController {
 
     @PostMapping()
     public ResponseEntity<?> complainThisService(@RequestBody ComplainRequestDto complainRequestDto, HttpServletRequest request) {
-        complainService.complainThisService(complainRequestDto, request);
+        return complainService.complainThisService(complainRequestDto, request);
     }
 }

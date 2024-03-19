@@ -2,6 +2,8 @@ package kr.henein.api.entity;
 
 import kr.henein.api.enumCustom.ComplainReason;
 import kr.henein.api.enumCustom.ComplainType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +11,8 @@ import javax.persistence.*;
 
 @Entity
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 public class ComplaintEntity {
     @Id
@@ -38,4 +42,5 @@ public class ComplaintEntity {
 
     @Column(nullable = false)
     private String complainantName;
+
 }
