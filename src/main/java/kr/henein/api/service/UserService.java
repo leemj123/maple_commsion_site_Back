@@ -56,21 +56,21 @@ public class UserService {
         UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
 
-        UserCharEntity userCharEntity = userCharRepository.findByUserEntityAndPickByUser(userEntity,true);
+
 
         List<S3File> s3File = s3FileRepository.findAllByS3EntityTypeAndTypeId(S3EntityType.USER,userEntity.getId());
 
-        if (s3File.isEmpty() && userCharEntity == null ) {
+        if (s3File.isEmpty() && userEntity.getPickChar() == null ) {
             return new UserInfoResponseDto(userEntity,null,null);
         }
-        else if (userCharEntity == null) {
+        else if (userEntity.getPickChar() == null) {
             return new UserInfoResponseDto(userEntity,null,s3File.get(0).getFileUrl());
         }
         else if (s3File.isEmpty()) {
-            return new UserInfoResponseDto(userEntity,userCharEntity.getCharName(),null);
+            return new UserInfoResponseDto(userEntity,userEntity.getPickChar().getCharName(),null);
         }
 
-        return new UserInfoResponseDto(userEntity,userCharEntity.getCharName(),s3File.get(0).getFileUrl());
+        return new UserInfoResponseDto(userEntity,userEntity.getPickChar().getCharName(),s3File.get(0).getFileUrl());
     }
 
     public UserDetailInfoResponseDto userDetailInfo(HttpServletRequest request) {
@@ -100,7 +100,7 @@ public class UserService {
     @Transactional
     public String userUpdate(UserInfoChange userInfoChange, HttpServletRequest request) throws IOException {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);});
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
         if (!userInfoChange.getUserName().trim().isEmpty()) {
             userEntity.updateUserName(userInfoChange.getUserName());
@@ -115,7 +115,7 @@ public class UserService {
     @Transactional
     public void changeToAnonymous(HttpServletRequest request) {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);});
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
         userEntity.updateUserName(userEntity.getUid());
         userEntity.updateAnonymous(true);
     }
@@ -123,24 +123,27 @@ public class UserService {
     @Transactional
     public void pickCharacter(Long id, HttpServletRequest request) {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()->{throw new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION);});
+        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
-        UserCharEntity oldCharEntity = userCharRepository.findByUserEntityAndPickByUser(userEntity, true);
 
-        if (oldCharEntity == null){
+        if (userEntity.getPickChar() == null){
             UserCharEntity newCharEntity = userCharRepository.findByUserEntityAndId(userEntity, id);
             newCharEntity.pickThisCharacter();
+
+            userEntity.updatePickChar(newCharEntity);
             return;
         }
-        else if (oldCharEntity.getId().equals(id) ){
-            oldCharEntity.unPickThisCharacter();
+        else if (userEntity.getPickChar().getId().equals(id) ){
+            userEntity.getPickChar().unPickThisCharacter();
+            userEntity.updatePickChar(null);
             return;
         }
 
         UserCharEntity newCharEntity = userCharRepository.findByUserEntityAndId(userEntity, id);
 
-        oldCharEntity.unPickThisCharacter();
+        userEntity.getPickChar().unPickThisCharacter();
         newCharEntity.pickThisCharacter();
+        userEntity.updatePickChar(newCharEntity);
 
     }
 

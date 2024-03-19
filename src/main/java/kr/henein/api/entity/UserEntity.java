@@ -36,6 +36,9 @@ public class UserEntity extends BaseTimeEntity{
     private boolean isAnonymous;
     @Column(nullable = false)
     private boolean blackList;
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "pick_char")
+    private UserCharEntity pickChar;
 
 
     //카카오 로그인을 위함
@@ -48,10 +51,11 @@ public class UserEntity extends BaseTimeEntity{
         this.userRole = UserRole.USER;
         this.uid = String.valueOf(uid);
     }
+    public void updatePickChar(UserCharEntity charEntity) {this.pickChar = charEntity;}
     public void updateUserName(String userName) {
         this.userName = userName;
     }
-    public void updatePW(String password) {this.password = password;}
+
     public void updateAnonymous(boolean value) {this.isAnonymous = value;}
 
     public void setRefreshToken(String refreshToken){
