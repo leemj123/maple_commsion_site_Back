@@ -26,14 +26,16 @@ public class UserEntity extends BaseTimeEntity{
     private String userEmail;
     @Column(unique = true, nullable = false)
     private String userName;
-    @Column(nullable = false)
-    private boolean isAnonymous;
     @Column
     private String password;
     @Column(length = 512,nullable = false)
     private String refreshToken;
     @Column
     private String nexonApiKey;
+    @Column(nullable = false)
+    private boolean isAnonymous;
+    @Column(nullable = false)
+    private boolean blackList;
 
 
     //카카오 로그인을 위함
@@ -41,6 +43,7 @@ public class UserEntity extends BaseTimeEntity{
         String uid = UUID.randomUUID().toString();
         this.userEmail = email;
         this.isAnonymous = true;
+        this.blackList = false;
         this.userName = uid;
         this.userRole = UserRole.USER;
         this.uid = String.valueOf(uid);

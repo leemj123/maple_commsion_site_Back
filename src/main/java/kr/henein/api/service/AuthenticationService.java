@@ -130,6 +130,7 @@ public class AuthenticationService {
                 .refreshToken(RT)
                 .userEmail(basicRegisterRequestDto.getUserEmail())
                 .isAnonymous(true)
+                .blackList(false)
                 .uid(uid)
                 .password(passwordEncoder.encode(basicRegisterRequestDto.getPassword()))
                 .build();
