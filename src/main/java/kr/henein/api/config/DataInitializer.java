@@ -19,11 +19,11 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         List<BoardTypeEntity> boardTypeEntityList = new ArrayList<>();
 
-        if ( !boardTypeRepository.existsByName("NOTICE") ) {
-            boardTypeEntityList.add(new BoardTypeEntity("NOTICE", BoardType.Board, 0));
+        if ( !boardTypeRepository.existsByName("공지") ) {
+            boardTypeEntityList.add(new BoardTypeEntity("공지", BoardType.Board, 0));
         }
-        if ( !boardTypeRepository.existsByName("FREE") ) {
-            boardTypeEntityList.add(new BoardTypeEntity("FREE", BoardType.Board,1));
+        if ( !boardTypeRepository.existsByName("자유") ) {
+            boardTypeEntityList.add(new BoardTypeEntity("자유", BoardType.Board,1));
         }
         boardTypeRepository.saveAll(boardTypeEntityList);
     }

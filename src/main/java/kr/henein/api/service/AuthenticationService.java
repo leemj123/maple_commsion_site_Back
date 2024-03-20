@@ -1,9 +1,12 @@
 package kr.henein.api.service;
 
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.henein.api.dto.captcha.CaptchaResponseDto;
 import kr.henein.api.dto.login.BasicLoginRequestDto;
 import kr.henein.api.dto.login.BasicRegisterRequestDto;
 import kr.henein.api.dto.login.KakaoOAuth2User;
+import kr.henein.api.entity.QAccountBanEntity;
+import kr.henein.api.entity.QUserEntity;
 import kr.henein.api.entity.UserEntity;
 import kr.henein.api.enumCustom.UserRole;
 import kr.henein.api.error.ErrorCode;
@@ -43,6 +46,7 @@ public class AuthenticationService {
     private final KakaoOAuth2Client kakaoOAuth2Client;
     private final PasswordEncoder passwordEncoder;
     private final RedisService redisService;
+    private final JPAQueryFactory jpaQueryFactory;
 
     @Value("${google.recaptcha.key.secret-key}")
     private String secretKey;
@@ -50,6 +54,24 @@ public class AuthenticationService {
     private String url;
 
     //==================로그인 관련
+    private UserEntity getUserEntity(String userEmail) {
+        QUserEntity qUserEntity = QUserEntity.userEntity;
+        QAccountBanEntity qAccountBanEntity = QAccountBanEntity.accountBanEntity;
+        UserEntity userEntity = jpaQueryFactory
+                .selectFrom(qUserEntity)
+                .join(qUserEntity.accountBanEntity, qAccountBanEntity).fetchJoin()
+                .where(qUserEntity.userEmail.eq(userEmail))
+                .fetchOne();
+
+        if (userEntity == null) {
+            throw new UnAuthorizedException("cannot found account", ErrorCode.NOT_FOUND);
+        }
+        if (userEntity.getAccountBanEntity() != null) {
+            throw new UnAuthorizedException("이 계정은 "+ userEntity.getAccountBanEntity().getFinPeriod()+"일까지 정지된 계정입니다.", ErrorCode.INVALID_ACCESS);
+        }
+        return userEntity;
+    }
+
 
     @Transactional
     public ResponseEntity<?> refreshAT(HttpServletRequest request,HttpServletResponse response) {
@@ -58,23 +80,23 @@ public class AuthenticationService {
 
         // rt 넣어서 검증하고 유저이름 가져오기
         String userEmail = jwtTokenProvider.refreshAccessToken(RTHeader);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new UnAuthorizedException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND));
+        UserEntity userEntity = this.getUserEntity(userEmail);
+
+
         //db에 있는 토큰값과 넘어온 토큰이 같은지
         if (!userEntity.getRefreshToken().equals(RTHeader)){
             throw new UnAuthorizedException(ErrorCode.EXPIRED_RT.getMessage(),ErrorCode.EXPIRED_RT);
         }
         String newAccessToken = jwtTokenProvider.generateAccessToken(userEmail, userEntity.getUserRole());
 
-        // Set the new access token in the HTTP response headers
         response.setHeader("Authorization", "Bearer " + newAccessToken);
 
-        // Optionally, return the new access token in the response body as well
         return ResponseEntity.ok("good");
     }
 
     @Transactional
     public ResponseEntity<?> basicLogin(BasicLoginRequestDto basicLoginRequestDto, HttpServletResponse servletResponse){
-        UserEntity userEntity = userRepository.findByUserEmail(basicLoginRequestDto.getUserEmail()).orElseThrow(()-> new UnAuthorizedException("이메일을 확인하세요", ErrorCode.INVALID_ACCESS));
+        UserEntity userEntity = this.getUserEntity(basicLoginRequestDto.getUserEmail());
 
         if ( !passwordEncoder.matches(basicLoginRequestDto.getPassword(),userEntity.getPassword()) ) {
             throw new UnAuthorizedException("비밀번호가 틀렸습니다.",ErrorCode.INVALID_ACCESS);
@@ -130,7 +152,6 @@ public class AuthenticationService {
                 .refreshToken(RT)
                 .userEmail(basicRegisterRequestDto.getUserEmail())
                 .isAnonymous(true)
-                .blackList(false)
                 .uid(uid)
                 .password(passwordEncoder.encode(basicRegisterRequestDto.getPassword()))
                 .build();
@@ -153,11 +174,24 @@ public class AuthenticationService {
         Authentication authentication = new UsernamePasswordAuthenticationToken(kakaoOAuth2User, null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String email = kakaoOAuth2User.getKakao_account().getEmail();
-        String RT = jwtTokenProvider.generateRefreshToken(email);
+        String userEmail = kakaoOAuth2User.getKakao_account().getEmail();
+        String RT = jwtTokenProvider.generateRefreshToken(userEmail);
 
-        UserEntity userEntity = userRepository.findByUserEmail(email)
-                .orElseGet(() ->new UserEntity(email));
+
+        QUserEntity qUserEntity = QUserEntity.userEntity;
+        QAccountBanEntity qAccountBanEntity = QAccountBanEntity.accountBanEntity;
+        UserEntity userEntity = jpaQueryFactory
+                .selectFrom(qUserEntity)
+                .join(qUserEntity.accountBanEntity, qAccountBanEntity).fetchJoin()
+                .where(qUserEntity.userEmail.eq(userEmail))
+                .fetchOne();
+
+        if (userEntity == null) {
+            userEntity = new UserEntity(userEmail);
+        }
+        if (userEntity.getAccountBanEntity() != null) {
+            throw new UnAuthorizedException("이 계정은 "+ userEntity.getAccountBanEntity().getFinPeriod()+"일까지 정지된 계정입니다.", ErrorCode.INVALID_ACCESS);
+        }
 
         //신규회원이면
         Map<String, String> tokens = new HashMap<>();
@@ -169,7 +203,7 @@ public class AuthenticationService {
             userEntity.setRefreshToken(RT);
         }
 
-        String AT = jwtTokenProvider.generateAccessToken(email, userEntity.getUserRole());
+        String AT = jwtTokenProvider.generateAccessToken(userEmail, userEntity.getUserRole());
 
 
         response.setHeader("Authorization","Bearer " + AT);

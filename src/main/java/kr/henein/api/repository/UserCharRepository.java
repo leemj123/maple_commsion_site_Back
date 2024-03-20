@@ -9,7 +9,6 @@ import java.util.List;
 public interface UserCharRepository extends JpaRepository<UserCharEntity,Long> {
 
     UserCharEntity findByUserEntityAndId(UserEntity userEntity,Long id);
-    UserCharEntity findByUserEntityAndPickByUser(UserEntity userEntity, boolean pickByUser);
     List<UserCharEntity> findAllByUserEntity(UserEntity userEntity);
 
 }

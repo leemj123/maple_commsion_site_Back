@@ -34,8 +34,11 @@ public class UserEntity extends BaseTimeEntity{
     private String nexonApiKey;
     @Column(nullable = false)
     private boolean isAnonymous;
-    @Column(nullable = false)
-    private boolean blackList;
+
+    @OneToOne
+    @JoinColumn(name = "ban")
+    private AccountBanEntity accountBanEntity;
+
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "pick_char")
     private UserCharEntity pickChar;
@@ -46,7 +49,6 @@ public class UserEntity extends BaseTimeEntity{
         String uid = UUID.randomUUID().toString();
         this.userEmail = email;
         this.isAnonymous = true;
-        this.blackList = false;
         this.userName = uid;
         this.userRole = UserRole.USER;
         this.uid = String.valueOf(uid);

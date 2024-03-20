@@ -90,7 +90,7 @@ public class CommonBoardService {
                 .where(qBoardEntity.type.ne(type))
                 .orderBy(qBoardEntity.id.desc())
                 .offset(pageRequest.getOffset())
-                .limit(20)
+                .limit(pageRequest.getPageSize())
                 .fetch();
 
         long count = jpaQueryFactory
