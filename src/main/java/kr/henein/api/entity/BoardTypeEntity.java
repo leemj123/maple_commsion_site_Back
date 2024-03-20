@@ -21,6 +21,7 @@ public class BoardTypeEntity {
     private String name;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private BoardType boardType;
 
     @Column(nullable = false, unique = true)
