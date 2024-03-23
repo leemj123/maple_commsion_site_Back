@@ -41,7 +41,7 @@ public class BoardController {
     })
     @GetMapping()
     @Timed(value = "board.getPage",longTask = true)
-    public Page<BoardListResponseDto> getTypeOfBoard(@RequestParam("type") String type  , @RequestParam("page")int page ){
+    public Page<BoardListResponseDto> getTypeOfBoard(@RequestParam("type")String type  , @RequestParam("page")int page ){
         return type.equals("ALL") ? commonBoardService.getBoardNotNotice(page) : commonBoardService.getTypeOfBoard(page, type);
     }
     //Read

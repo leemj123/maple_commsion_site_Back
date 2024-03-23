@@ -82,7 +82,8 @@ public class CommonBoardService {
     }
     public Page<BoardListResponseDto> getBoardNotNotice(int page) {
         PageRequest pageRequest = PageRequest.of(page-1, 20);
-        BoardTypeEntity type = getBoardType("NOTICE");
+        BoardTypeEntity type = boardTypeRepository.findByName("공지").orElseThrow(()->new NotFoundException("공지 게시판이 왜 없지 이상하네 ㅎㅎ..",ErrorCode.NOT_EXIST_TYPE));
+
         QBoardTypeEntity qBoardTypeEntity = QBoardTypeEntity.boardTypeEntity;
         QBoardEntity qBoardEntity = QBoardEntity.boardEntity;
 
