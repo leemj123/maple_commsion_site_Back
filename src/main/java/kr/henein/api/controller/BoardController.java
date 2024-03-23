@@ -29,7 +29,7 @@ public class BoardController {
     private final S3Service s3Service;
 
 
-    @Operation(summary = "메인페이지 게시글 정렬정보 리턴, 0번인덱스 전체게시판, 그 후 넘버링된 순서대로 인덱스 배정")
+    @Operation(summary = "메인페이지 게시글 정렬정보 리턴, ",description = "0번인덱스 전체게시판, 그 후 넘버링된 순서대로 인덱스 배정")
     @GetMapping("/main")
     public List<MainPageResponseDTO> getMainPage() {
         return commonBoardService.getMainPageService();

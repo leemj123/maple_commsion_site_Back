@@ -2,6 +2,7 @@ package kr.henein.api.service;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import io.jsonwebtoken.Claims;
+import kr.henein.api.dto.BannerResponseDto;
 import kr.henein.api.dto.board.*;
 import kr.henein.api.entity.*;
 
@@ -40,6 +41,7 @@ public class CommonBoardService {
     private final JPAQueryFactory jpaQueryFactory;
     private final S3Service s3Service;
     private final BoardTypeRepository boardTypeRepository;
+    private final BannerRepository bannerRepository;
 
     private BoardTypeEntity getBoardType(String type) {
         return boardTypeRepository.findByName(type).orElseThrow(()->new NotFoundException(ErrorCode.NOT_EXIST_TYPE.getMessage(), ErrorCode.NOT_EXIST_TYPE));
@@ -333,5 +335,9 @@ public class CommonBoardService {
 
             return "재추천 완료";
         }
+    }
+
+    public List<BannerResponseDto> getBannerList() {
+        return bannerRepository.findAllByOrderByNumberingAsc().stream().map(BannerResponseDto::new).collect(Collectors.toList());
     }
 }
