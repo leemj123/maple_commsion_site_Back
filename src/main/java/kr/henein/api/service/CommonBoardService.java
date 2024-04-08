@@ -104,7 +104,7 @@ public class CommonBoardService {
         return new PageImpl<>(resultEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
     }
     public Page<BoardListResponseDto> SearchByText(String type, String key, int page) {
-        PageRequest pageRequest = PageRequest.of(page-1, 20);
+        PageRequest pageRequest = PageRequest.of(page-1, 10);
 
         if ( type.equals("ALL") ) {
             Page<BoardEntity> result = boardRepository.searchByText(key,pageRequest);
