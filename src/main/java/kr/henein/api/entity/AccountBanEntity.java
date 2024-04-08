@@ -8,7 +8,7 @@ import java.time.LocalDate;
 
 @Entity
 @Getter
-public class AccountBanEntity {
+public class AccountBanEntity extends BaseTimeEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
