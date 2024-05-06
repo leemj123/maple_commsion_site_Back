@@ -103,19 +103,31 @@ public class CommonBoardService {
 
         return new PageImpl<>(resultEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
     }
-    public Page<BoardListResponseDto> SearchByText(String type, String key, int page) {
+    public Page<BoardSearchListResponseDto> SearchByText(String type, String key, int page) {
         PageRequest pageRequest = PageRequest.of(page-1, 10);
-
+        Page<BoardEntity> result;
         if ( type.equals("ALL") ) {
-            Page<BoardEntity> result = boardRepository.searchByText(key,pageRequest);
-
-            return result.map(BoardListResponseDto::new);
+            result = boardRepository.searchByText(key,pageRequest);
         } else {
             BoardTypeEntity boardType = getBoardType(type);
-            Page<BoardEntity> result = boardRepository.searchByTextWithType(key, boardType, pageRequest);
-
-            return result.map(BoardListResponseDto::new);
+            result = boardRepository.searchByTextWithType(key, boardType, pageRequest);
         }
+
+        return result.map(entity -> {
+            String imagesUrl = null;
+            if (entity.isHasImage()) {
+
+                //이미지 파일 첨부되어있는지 문자열 슬라이싱
+                String regex = "(https://henesys-bucket.s3.ap-northeast-2.amazonaws.com/.*?\\.jpg)";
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(entity.getText());
+
+                if (matcher.find()){
+                    imagesUrl = matcher.group(1);
+                }
+            }
+            return new BoardSearchListResponseDto(entity,imagesUrl);
+        });
     }
 
     public List<MainPageResponseDTO> getMainPageService() {

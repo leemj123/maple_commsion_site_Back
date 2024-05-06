@@ -60,7 +60,7 @@ public class BoardController {
 //    Search
     @Operation(summary = "2자 이상 검색 가능")
     @GetMapping("/search")
-    public Page<BoardListResponseDto> SearchByText(@RequestParam("type")String type, @RequestParam ("key") String key, @RequestParam("page") int page ) {
+    public Page<BoardSearchListResponseDto> SearchByText(@RequestParam("type")String type, @RequestParam ("key") String key, @RequestParam("page") int page ) {
         return commonBoardService.SearchByText(type, key, page);
     }
     //==================================================================================
