@@ -55,9 +55,9 @@ public class CommonBoardService {
                 .toArray(String[]::new);
     }
 
-    public Page<BoardListResponseDto> getTypeOfBoard(int page, String type){
+    public Page<BoardListResponseDto> getTypeOfBoard(int page, String type, int size){
 
-        PageRequest pageRequest = PageRequest.of(page-1, 20);
+        PageRequest pageRequest = PageRequest.of(page-1, size);
         BoardTypeEntity boardTypeEntity = boardTypeRepository.findByName(type).orElseThrow(()->new NotFoundException(ErrorCode.NOT_EXIST_TYPE.getMessage(), ErrorCode.NOT_EXIST_TYPE));
         QBoardTypeEntity qBoardTypeEntity = QBoardTypeEntity.boardTypeEntity;
         QBoardEntity qBoardEntity = QBoardEntity.boardEntity;
@@ -68,7 +68,7 @@ public class CommonBoardService {
                 .where(qBoardEntity.type.eq(boardTypeEntity))
                 .orderBy(qBoardEntity.id.desc())
                 .offset(pageRequest.getOffset())
-                .limit(20)
+                .limit(pageRequest.getPageSize())
                 .fetch();
 
         long count = jpaQueryFactory
@@ -80,8 +80,8 @@ public class CommonBoardService {
         return new PageImpl<>(resultEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest,count);
 
     }
-    public Page<BoardListResponseDto> getBoardNotNotice(int page) {
-        PageRequest pageRequest = PageRequest.of(page-1, 20);
+    public Page<BoardListResponseDto> getBoardNotNotice(int page, int size) {
+        PageRequest pageRequest = PageRequest.of(page-1, size);
         BoardTypeEntity type = boardTypeRepository.findByName("공지").orElseThrow(()->new NotFoundException("공지 게시판이 왜 없지 이상하네 ㅎㅎ..",ErrorCode.NOT_EXIST_TYPE));
 
         QBoardTypeEntity qBoardTypeEntity = QBoardTypeEntity.boardTypeEntity;
@@ -103,8 +103,8 @@ public class CommonBoardService {
 
         return new PageImpl<>(resultEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
     }
-    public Page<BoardSearchListResponseDto> SearchByText(String type, String key, int page) {
-        PageRequest pageRequest = PageRequest.of(page-1, 10);
+    public Page<BoardSearchListResponseDto> SearchByText(String type, String key, int page, int size) {
+        PageRequest pageRequest = PageRequest.of(page-1, size);
         Page<BoardEntity> result;
         if ( type.equals("ALL") ) {
             result = boardRepository.searchByText(key,pageRequest);

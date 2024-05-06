@@ -41,8 +41,9 @@ public class BoardController {
     })
     @GetMapping()
     @Timed(value = "board.getPage",longTask = true)
-    public Page<BoardListResponseDto> getTypeOfBoard(@RequestParam("type")String type  , @RequestParam("page")int page ){
-        return type.equals("ALL") ? commonBoardService.getBoardNotNotice(page) : commonBoardService.getTypeOfBoard(page, type);
+    public Page<BoardListResponseDto> getTypeOfBoard(@RequestParam("type")String type  , @RequestParam("page")int page,
+                                                     @RequestParam(required = false, defaultValue = "10") int size ){
+        return type.equals("ALL") ? commonBoardService.getBoardNotNotice(page, size) : commonBoardService.getTypeOfBoard(page, type, size);
     }
     //Read
     @Operation(summary = "게시판 종류 검색")
@@ -60,8 +61,9 @@ public class BoardController {
 //    Search
     @Operation(summary = "2자 이상 검색 가능")
     @GetMapping("/search")
-    public Page<BoardSearchListResponseDto> SearchByText(@RequestParam("type")String type, @RequestParam ("key") String key, @RequestParam("page") int page ) {
-        return commonBoardService.SearchByText(type, key, page);
+    public Page<BoardSearchListResponseDto> SearchByText(@RequestParam("type")String type, @RequestParam ("key") String key, @RequestParam("page") int page,
+                                                         @RequestParam(required = false, defaultValue = "10") int size ) {
+        return commonBoardService.SearchByText(type, key, page, size);
     }
     //==================================================================================
     @Operation(summary = "Json 으로 보내주세요 [보안]")

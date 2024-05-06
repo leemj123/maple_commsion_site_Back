@@ -307,7 +307,7 @@ public class UserService {
 
     public Page<BoardListResponseDto> getMyBoardList(HttpServletRequest request, int page, int size) {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        PageRequest pageRequest = PageRequest.of(page,size);
+        PageRequest pageRequest = PageRequest.of(page-1,size);
 
         QBoardEntity qBoardEntity= QBoardEntity.boardEntity;
 
@@ -329,7 +329,7 @@ public class UserService {
 
     public Page<BoardListResponseDto> getMyBoardsWithCommentList(HttpServletRequest request, int page, int size) {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        PageRequest pageRequest = PageRequest.of(page,size);
+        PageRequest pageRequest = PageRequest.of(page-1,size);
         QCommentEntity qCommentEntity = QCommentEntity.commentEntity;
 
         List<BoardEntity> boardEntityList = jpaQueryFactory
