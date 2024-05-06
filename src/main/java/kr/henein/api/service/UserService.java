@@ -20,6 +20,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -302,8 +305,9 @@ public class UserService {
 
     //============내 활동관련 =======================//
 
-    public List<BoardListResponseDto> getMyBoardList(HttpServletRequest request) {
+    public Page<BoardListResponseDto> getMyBoardList(HttpServletRequest request, int page, int size) {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
+        PageRequest pageRequest = PageRequest.of(page,size);
 
         QBoardEntity qBoardEntity= QBoardEntity.boardEntity;
 
@@ -311,14 +315,21 @@ public class UserService {
                 .selectFrom(qBoardEntity)
                 .where(qBoardEntity.userEntity.userEmail.eq(userEmail))
                 .orderBy(qBoardEntity.id.desc())
+                .offset(pageRequest.getOffset())
+                .limit(pageRequest.getPageSize())
                 .fetch();
 
-        return boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList());
+        long count = jpaQueryFactory
+                .selectFrom(qBoardEntity)
+                .where(qBoardEntity.userEntity.userEmail.eq(userEmail))
+                .fetchCount();
+
+        return new PageImpl<>(boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
     }
 
-    public List<BoardListResponseDto> getMyBoardsWithCommentList(HttpServletRequest request) {
+    public Page<BoardListResponseDto> getMyBoardsWithCommentList(HttpServletRequest request, int page, int size) {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-
+        PageRequest pageRequest = PageRequest.of(page,size);
         QCommentEntity qCommentEntity = QCommentEntity.commentEntity;
 
         List<BoardEntity> boardEntityList = jpaQueryFactory
@@ -329,7 +340,14 @@ public class UserService {
                 .orderBy(qCommentEntity.boardEntity.id.desc())
                 .fetch();
 
-        return boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList());
+        long count = jpaQueryFactory
+                .select(qCommentEntity.boardEntity)
+                .distinct()
+                .from(qCommentEntity)
+                .where(qCommentEntity.userEmail.eq(userEmail))
+                .fetchCount();
+
+        return new PageImpl<>(boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
     }
 
     public List<BoardListResponseDto> searchBoardByName(String name) {

@@ -16,6 +16,7 @@ import io.swagger.annotations.Api;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -99,13 +100,15 @@ public class UserInfoController {
     //================내 활동 관련 =====================//
     @Operation(summary = "내가 쓴 게시글 보기")
     @GetMapping("/myboards")
-    public List<BoardListResponseDto> getMyBoardList (HttpServletRequest request) {
-        return userService.getMyBoardList(request);
+    public Page<BoardListResponseDto> getMyBoardList (HttpServletRequest request, @RequestParam int page,
+                                                      @RequestParam(required = false, defaultValue = "10") int size) {
+        return userService.getMyBoardList(request, page, size);
     }
     @Operation(summary = "댓글 작성한 게시글 보기")
     @GetMapping("/mycomment-boards")
-    public List<BoardListResponseDto> getMyBoardsWithCommentList (HttpServletRequest request) {
-        return userService.getMyBoardsWithCommentList(request);
+    public Page<BoardListResponseDto> getMyBoardsWithCommentList (HttpServletRequest request, @RequestParam int page,
+                                                                  @RequestParam(required = false, defaultValue = "10") int size) {
+        return userService.getMyBoardsWithCommentList(request, page, size);
     }
     //==============타인 조회 ====================//
     @Operation(summary = "유저 Name 값으로 조회 작성 게시글 조회 토큰 필요없음")
