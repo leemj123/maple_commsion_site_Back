@@ -1,5 +1,6 @@
 package kr.henein.api.service;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import kr.henein.api.dto.board.BoardListResponseDto;
 import kr.henein.api.dto.user.UserDetailInfoResponseDto;
 import kr.henein.api.dto.user.UserInfoChange;
@@ -305,15 +306,40 @@ public class UserService {
 
     //============내 활동관련 =======================//
 
-    public Page<BoardListResponseDto> getMyBoardList(HttpServletRequest request, int page, int size) {
-        String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        PageRequest pageRequest = PageRequest.of(page-1,size);
+    public Page<BoardListResponseDto> getMyBoardList(HttpServletRequest request, String name, int page, int size) {
+
+        String AT = jwtTokenProvider.resolveAccessToken(request);
+        String userEmail = null;
+        if (AT != null) {
+            jwtTokenProvider.validateToken(AT);
+            userEmail = jwtTokenProvider.getUserEmailFromAccessToken(AT);
+        }
+
+        UserEntity targetedUser = userRepository.findByUserName(name).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
         QBoardEntity qBoardEntity= QBoardEntity.boardEntity;
+        BooleanExpression predicate;
+
+        if (userEmail == null ) {
+
+            predicate = qBoardEntity.userEntity.eq(targetedUser).and(qBoardEntity.userName.ne("ㅇㅇ"));
+
+        } else {
+
+            UserEntity requestUser = userRepository.findByUserEmail(userEmail).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
+            if ( !requestUser.equals(targetedUser) )
+                predicate = qBoardEntity.userEntity.eq(targetedUser).and(qBoardEntity.userName.ne("ㅇㅇ"));
+            else
+                predicate = qBoardEntity.userEntity.eq(targetedUser);
+        }
+
+
+        PageRequest pageRequest = PageRequest.of(page-1,size);
+
 
         List<BoardEntity> boardEntityList = jpaQueryFactory
                 .selectFrom(qBoardEntity)
-                .where(qBoardEntity.userEntity.userEmail.eq(userEmail))
+                .where(predicate)
                 .orderBy(qBoardEntity.id.desc())
                 .offset(pageRequest.getOffset())
                 .limit(pageRequest.getPageSize())
@@ -321,30 +347,55 @@ public class UserService {
 
         long count = jpaQueryFactory
                 .selectFrom(qBoardEntity)
-                .where(qBoardEntity.userEntity.userEmail.eq(userEmail))
+                .where(predicate)
                 .fetchCount();
 
         return new PageImpl<>(boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
     }
 
-    public Page<BoardListResponseDto> getMyBoardsWithCommentList(HttpServletRequest request, int page, int size) {
-        String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        PageRequest pageRequest = PageRequest.of(page-1,size);
+    public Page<BoardListResponseDto> getMyBoardsWithCommentList(HttpServletRequest request, String name, int page, int size) {
+        String AT = jwtTokenProvider.resolveAccessToken(request);
+        String userEmail = null;
+        if (AT != null) {
+            jwtTokenProvider.validateToken(AT);
+            userEmail = jwtTokenProvider.getUserEmailFromAccessToken(AT);
+        }
+        UserEntity targetedUser = userRepository.findByUserName(name).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
+
         QCommentEntity qCommentEntity = QCommentEntity.commentEntity;
+
+        BooleanExpression predicate;
+
+        if (userEmail == null ) {
+
+            predicate = qCommentEntity.userEmail.eq(targetedUser.getUserEmail()).and(qCommentEntity.boardEntity.userName.ne("ㅇㅇ"));
+
+        } else {
+
+            UserEntity requestUser = userRepository.findByUserEmail(userEmail).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
+            if ( !requestUser.equals(targetedUser) )
+                predicate = qCommentEntity.userEmail.eq(targetedUser.getUserEmail()).and(qCommentEntity.boardEntity.userName.ne("ㅇㅇ"));
+            else
+                predicate = qCommentEntity.userEmail.eq(userEmail);
+        }
+
+        PageRequest pageRequest = PageRequest.of(page-1,size);
 
         List<BoardEntity> boardEntityList = jpaQueryFactory
                 .select(qCommentEntity.boardEntity)
                 .distinct()
                 .from(qCommentEntity)
-                .where(qCommentEntity.userEmail.eq(userEmail))
+                .where(predicate)
                 .orderBy(qCommentEntity.boardEntity.id.desc())
+                .offset(pageRequest.getOffset())
+                .limit(pageRequest.getPageSize())
                 .fetch();
 
         long count = jpaQueryFactory
                 .select(qCommentEntity.boardEntity)
                 .distinct()
                 .from(qCommentEntity)
-                .where(qCommentEntity.userEmail.eq(userEmail))
+                .where(predicate)
                 .fetchCount();
 
         return new PageImpl<>(boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);

@@ -99,16 +99,16 @@ public class UserInfoController {
 
     //================내 활동 관련 =====================//
     @Operation(summary = "내가 쓴 게시글 보기")
-    @GetMapping("/myboards")
-    public Page<BoardListResponseDto> getMyBoardList (HttpServletRequest request, @RequestParam int page,
+    @GetMapping("/active/board")
+    public Page<BoardListResponseDto> getMyBoardList (HttpServletRequest request,@RequestParam String name, @RequestParam int page,
                                                       @RequestParam(required = false, defaultValue = "10") int size) {
-        return userService.getMyBoardList(request, page, size);
+        return userService.getMyBoardList(request, name, page, size);
     }
     @Operation(summary = "댓글 작성한 게시글 보기")
-    @GetMapping("/mycomment-boards")
-    public Page<BoardListResponseDto> getMyBoardsWithCommentList (HttpServletRequest request, @RequestParam int page,
+    @GetMapping("/active/comment")
+    public Page<BoardListResponseDto> getMyBoardsWithCommentList (HttpServletRequest request,@RequestParam String name, @RequestParam int page,
                                                                   @RequestParam(required = false, defaultValue = "10") int size) {
-        return userService.getMyBoardsWithCommentList(request, page, size);
+        return userService.getMyBoardsWithCommentList(request, name, page, size);
     }
     //==============타인 조회 ====================//
     @Operation(summary = "유저 Name 값으로 조회 작성 게시글 조회 토큰 필요없음")

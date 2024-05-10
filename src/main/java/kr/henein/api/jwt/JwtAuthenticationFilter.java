@@ -41,6 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             || path.startsWith("/auth")
             || (method.equals(HttpMethod.GET.name()) && path.startsWith("/board"))
             || path.contains("/userinfo/character/info") || path.contains("/userinfo/search")
+                || path.startsWith("/userinfo/active")
             || path.startsWith("/actuator")) {
 
             filterChain.doFilter(request,response);
