@@ -59,7 +59,7 @@ public class AuthenticationService {
         QAccountBanEntity qAccountBanEntity = QAccountBanEntity.accountBanEntity;
         UserEntity userEntity = jpaQueryFactory
                 .selectFrom(qUserEntity)
-                .join(qUserEntity.accountBanEntity, qAccountBanEntity).fetchJoin()
+                .leftJoin(qUserEntity.accountBanEntity, qAccountBanEntity).fetchJoin()
                 .where(qUserEntity.userEmail.eq(userEmail))
                 .fetchOne();
 

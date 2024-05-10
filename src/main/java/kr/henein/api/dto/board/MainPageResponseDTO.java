@@ -3,11 +3,15 @@ package kr.henein.api.dto.board;
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.henein.api.enumCustom.BoardType;
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
 @Schema(description = "게시판 정보")
 @Builder
+@Getter
+@Setter
 public class MainPageResponseDTO {
     @Schema(description = "관리자 지정 이름")
     private String name;

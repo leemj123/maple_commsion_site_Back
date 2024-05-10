@@ -174,7 +174,7 @@ public class CommonBoardService {
             MainPageResponseDTO typeDto = MainPageResponseDTO.builder()
                     .name(b.getName())
                     .boardType(BoardType.Board)
-                    .numbering(-1)
+                    .numbering(b.getNumbering())
                     .simpleBoardList(typeByBoard.stream().map(SimpleBoardResponseDTO::new).collect(Collectors.toList()))
                     .build();
 
