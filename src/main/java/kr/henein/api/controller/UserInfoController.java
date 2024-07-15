@@ -40,11 +40,11 @@ public class UserInfoController {
 
         return userService.userInfo(request);
     }
-    @Operation(summary = "유저 정보에 대한 요청 API")
+    @Operation(summary = "유저 정보에 대한 요청 API/ 수정")
     @GetMapping("/profile")
-    public UserDetailInfoResponseDto userDetailInfo(HttpServletRequest request){
+    public UserDetailInfoResponseDto userDetailInfo(@RequestParam String userName, HttpServletRequest request){
 
-        return userService.userDetailInfo(request);
+        return userService.userDetailInfo(userName, request);
     }
 
     @Operation(summary = "유저 이름,사진 변경 API - [form-data]")
@@ -57,11 +57,6 @@ public class UserInfoController {
         else if (userRepository.existsByUserName(userInfoChange.getUserName()))
             throw new ForbiddenException("사용자가 이미 존재합니다.", ErrorCode.BAD_REQUEST);
         return userService.userUpdate(userInfoChange, request);
-    }
-    @Operation(summary = "익명으로 재설정하기")
-    @PostMapping("/anonymous")
-    public void changeToAnonymous(HttpServletRequest request) {
-        userService.changeToAnonymous(request);
     }
 
     //=====================메이플 캐릭터 관련=========================//

@@ -77,52 +77,132 @@ public class UserService {
         return new UserInfoResponseDto(userEntity,userEntity.getPickChar().getCharName(),s3File.get(0).getFileUrl());
     }
 
-    public UserDetailInfoResponseDto userDetailInfo(HttpServletRequest request) {
-        String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
-
+    public UserDetailInfoResponseDto userDetailInfo(String userName, HttpServletRequest request) {
+        String requestUserEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
+        UserEntity userEntity = userRepository.findByUserName(userName).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
         QBoardEntity qBoardEntity= QBoardEntity.boardEntity;
+        BooleanExpression predicate = qBoardEntity.userEntity.eq(userEntity);
+
+        String uid = userEntity.getUid();
+        if ( !requestUserEmail.equals(userEntity.getUserEmail()) ){
+            predicate = predicate.and(qBoardEntity.isAnonymous.isFalse());
+            uid = null;
+        }
+
+
         long boardCount = jpaQueryFactory
                 .selectFrom(qBoardEntity)
-                .where(qBoardEntity.userEntity.eq(userEntity))
+                .where(predicate)
                 .fetchCount();
 
         QCommentEntity qCommentEntity = QCommentEntity.commentEntity;
         long commentCount = jpaQueryFactory
                 .selectFrom(qCommentEntity)
-                .where(qCommentEntity.userEmail.eq(userEntity.getUserEmail()))
+                .where(predicate)
                 .fetchCount();
 
         List<S3File> s3File = s3FileRepository.findAllByS3EntityTypeAndTypeId(S3EntityType.USER,userEntity.getId());
 
         if (s3File.isEmpty()) {
-            return new UserDetailInfoResponseDto(userEntity,null,boardCount,commentCount);
+            return UserDetailInfoResponseDto.builder()
+                    .userName(userEntity.getUserName())
+                    .uid(uid)
+                    .imageUrl(null)
+                    .boardCount(boardCount)
+                    .commentCount(commentCount)
+                    .build();
         }
-        return new UserDetailInfoResponseDto(userEntity,s3File.get(0).getFileUrl(),boardCount,commentCount);
+        return UserDetailInfoResponseDto.builder()
+                .userName(userEntity.getUserName())
+                .uid(uid)
+                .imageUrl(s3File.get(0).getFileUrl())
+                .boardCount(boardCount)
+                .commentCount(commentCount)
+                .build();
     }
+    //============내 활동관련 =======================//
+
+    public Page<BoardListResponseDto> getMyBoardList(HttpServletRequest request, String name, int page, int size) {
+
+        String requestUserEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
+
+        UserEntity targetedUser = userRepository.findByUserName(name).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
+
+        QBoardEntity qBoardEntity= QBoardEntity.boardEntity;
+        BooleanExpression predicate = qBoardEntity.userEntity.eq(targetedUser);
+
+        if( !requestUserEmail.equals(targetedUser.getUserEmail()) ) {
+            predicate = predicate.and(qBoardEntity.isAnonymous.isFalse());
+        }
+
+
+        PageRequest pageRequest = PageRequest.of(page-1,size);
+
+
+        List<BoardEntity> boardEntityList = jpaQueryFactory
+                .selectFrom(qBoardEntity)
+                .where(predicate)
+                .orderBy(qBoardEntity.id.desc())
+                .offset(pageRequest.getOffset())
+                .limit(pageRequest.getPageSize())
+                .fetch();
+
+        long count = jpaQueryFactory
+                .selectFrom(qBoardEntity)
+                .where(predicate)
+                .fetchCount();
+
+        return new PageImpl<>(boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
+    }
+
+    public Page<BoardListResponseDto> getMyBoardsWithCommentList(HttpServletRequest request, String name, int page, int size) {
+        String requestUserEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
+
+        UserEntity targetedUser = userRepository.findByUserName(name).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
+
+        QCommentEntity qCommentEntity = QCommentEntity.commentEntity;
+
+        BooleanExpression predicate = qCommentEntity.userEmail.eq(targetedUser.getUserEmail());
+
+        if ( !requestUserEmail.equals(targetedUser.getUserEmail()) )
+            predicate = predicate.and(qCommentEntity.boardEntity.userName.ne("ㅇㅇ"));
+
+
+        PageRequest pageRequest = PageRequest.of(page-1,size);
+
+        List<BoardEntity> boardEntityList = jpaQueryFactory
+                .select(qCommentEntity.boardEntity)
+                .distinct()
+                .from(qCommentEntity)
+                .where(predicate)
+                .orderBy(qCommentEntity.boardEntity.id.desc())
+                .offset(pageRequest.getOffset())
+                .limit(pageRequest.getPageSize())
+                .fetch();
+
+        long count = jpaQueryFactory
+                .select(qCommentEntity.boardEntity)
+                .distinct()
+                .from(qCommentEntity)
+                .where(predicate)
+                .fetchCount();
+
+        return new PageImpl<>(boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
+    }
+
     @Transactional
     public String userUpdate(UserInfoChange userInfoChange, HttpServletRequest request) throws IOException {
         String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
         UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
 
-        if (!userInfoChange.getUserName().trim().isEmpty()) {
-            userEntity.updateUserName(userInfoChange.getUserName());
-            userEntity.updateAnonymous(false);
-        }
         if (!(userInfoChange.getImage() == null || userInfoChange.getImage().isEmpty())) {
             s3Service.uploadImageUserPicture(userInfoChange.getImage(), userEntity.getId());
         }
 
         return "200ok";
     }
-    @Transactional
-    public void changeToAnonymous(HttpServletRequest request) {
-        String userEmail = jwtTokenProvider.fetchUserEmailByHttpRequest(request);
-        UserEntity userEntity = userRepository.findByUserEmail(userEmail).orElseThrow(()-> new NotFoundException(ErrorCode.NOT_FOUND_EXCEPTION.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
-        userEntity.updateUserName(userEntity.getUid());
-        userEntity.updateAnonymous(true);
-    }
+
     //=============================캐릭터 관련===================================================================================
     @Transactional
     public void pickCharacter(Long id, HttpServletRequest request) {
@@ -304,102 +384,6 @@ public class UserService {
 
 
 
-    //============내 활동관련 =======================//
-
-    public Page<BoardListResponseDto> getMyBoardList(HttpServletRequest request, String name, int page, int size) {
-
-        String AT = jwtTokenProvider.resolveAccessToken(request);
-        String userEmail = null;
-        if (AT != null) {
-            jwtTokenProvider.validateToken(AT);
-            userEmail = jwtTokenProvider.getUserEmailFromAccessToken(AT);
-        }
-
-        UserEntity targetedUser = userRepository.findByUserName(name).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
-
-        QBoardEntity qBoardEntity= QBoardEntity.boardEntity;
-        BooleanExpression predicate;
-
-        if (userEmail == null ) {
-
-            predicate = qBoardEntity.userEntity.eq(targetedUser).and(qBoardEntity.userName.ne("ㅇㅇ"));
-
-        } else {
-
-            UserEntity requestUser = userRepository.findByUserEmail(userEmail).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
-            if ( !requestUser.equals(targetedUser) )
-                predicate = qBoardEntity.userEntity.eq(targetedUser).and(qBoardEntity.userName.ne("ㅇㅇ"));
-            else
-                predicate = qBoardEntity.userEntity.eq(targetedUser);
-        }
-
-
-        PageRequest pageRequest = PageRequest.of(page-1,size);
-
-
-        List<BoardEntity> boardEntityList = jpaQueryFactory
-                .selectFrom(qBoardEntity)
-                .where(predicate)
-                .orderBy(qBoardEntity.id.desc())
-                .offset(pageRequest.getOffset())
-                .limit(pageRequest.getPageSize())
-                .fetch();
-
-        long count = jpaQueryFactory
-                .selectFrom(qBoardEntity)
-                .where(predicate)
-                .fetchCount();
-
-        return new PageImpl<>(boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
-    }
-
-    public Page<BoardListResponseDto> getMyBoardsWithCommentList(HttpServletRequest request, String name, int page, int size) {
-        String AT = jwtTokenProvider.resolveAccessToken(request);
-        String userEmail = null;
-        if (AT != null) {
-            jwtTokenProvider.validateToken(AT);
-            userEmail = jwtTokenProvider.getUserEmailFromAccessToken(AT);
-        }
-        UserEntity targetedUser = userRepository.findByUserName(name).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
-
-        QCommentEntity qCommentEntity = QCommentEntity.commentEntity;
-
-        BooleanExpression predicate;
-
-        if (userEmail == null ) {
-
-            predicate = qCommentEntity.userEmail.eq(targetedUser.getUserEmail()).and(qCommentEntity.boardEntity.userName.ne("ㅇㅇ"));
-
-        } else {
-
-            UserEntity requestUser = userRepository.findByUserEmail(userEmail).orElseThrow(()->new NotFoundException(ErrorCode.NOT_FOUND.getMessage(), ErrorCode.NOT_FOUND_EXCEPTION));
-            if ( !requestUser.equals(targetedUser) )
-                predicate = qCommentEntity.userEmail.eq(targetedUser.getUserEmail()).and(qCommentEntity.boardEntity.userName.ne("ㅇㅇ"));
-            else
-                predicate = qCommentEntity.userEmail.eq(userEmail);
-        }
-
-        PageRequest pageRequest = PageRequest.of(page-1,size);
-
-        List<BoardEntity> boardEntityList = jpaQueryFactory
-                .select(qCommentEntity.boardEntity)
-                .distinct()
-                .from(qCommentEntity)
-                .where(predicate)
-                .orderBy(qCommentEntity.boardEntity.id.desc())
-                .offset(pageRequest.getOffset())
-                .limit(pageRequest.getPageSize())
-                .fetch();
-
-        long count = jpaQueryFactory
-                .select(qCommentEntity.boardEntity)
-                .distinct()
-                .from(qCommentEntity)
-                .where(predicate)
-                .fetchCount();
-
-        return new PageImpl<>(boardEntityList.stream().map(BoardListResponseDto::new).collect(Collectors.toList()), pageRequest, count);
-    }
 
     public List<BoardListResponseDto> searchBoardByName(String name) {
         QBoardEntity qBoardEntity= QBoardEntity.boardEntity;

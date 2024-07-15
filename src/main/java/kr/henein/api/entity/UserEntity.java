@@ -32,8 +32,6 @@ public class UserEntity extends BaseTimeEntity{
     private String refreshToken;
     @Column
     private String nexonApiKey;
-    @Column(nullable = false)
-    private boolean isAnonymous;
 
     @OneToOne
     @JoinColumn(name = "ban")
@@ -45,20 +43,18 @@ public class UserEntity extends BaseTimeEntity{
 
 
     //카카오 로그인을 위함
-    public UserEntity(String email) {
+    public UserEntity(String email, int randomNum) {
         String uid = UUID.randomUUID().toString();
         this.userEmail = email;
-        this.isAnonymous = true;
-        this.userName = uid;
+        this.userName = "ㅇㅇ"+randomNum;
         this.userRole = UserRole.USER;
         this.uid = String.valueOf(uid);
     }
+
     public void updatePickChar(UserCharEntity charEntity) {this.pickChar = charEntity;}
     public void updateUserName(String userName) {
         this.userName = userName;
     }
-
-    public void updateAnonymous(boolean value) {this.isAnonymous = value;}
 
     public void setRefreshToken(String refreshToken){
         this.refreshToken = refreshToken;

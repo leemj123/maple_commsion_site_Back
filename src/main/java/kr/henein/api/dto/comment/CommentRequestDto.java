@@ -13,5 +13,6 @@ import lombok.Setter;
 public class CommentRequestDto {
     @ApiModelProperty(value="댓글 내용", example = "문자열", required = true)
     private String comment;
+    private boolean isAnonymous;
 
 }

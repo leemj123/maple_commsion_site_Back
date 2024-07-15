@@ -18,5 +18,6 @@ public class BoardRequestDto {
     @Lob
     private String text;
     private String boardType;
+    private boolean isAnonymous;
 
 }

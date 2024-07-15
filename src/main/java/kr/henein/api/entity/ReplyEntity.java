@@ -30,6 +30,8 @@ public class ReplyEntity extends BaseTimeEntity{
 
     @Column(nullable = false)
     private Boolean updated;
+
+    private boolean isAnonymous;
     public void update(ReplyRequestDto replyRequestDto) {
         this.tag = replyRequestDto.getTag();
         this.comment = replyRequestDto.getComment();

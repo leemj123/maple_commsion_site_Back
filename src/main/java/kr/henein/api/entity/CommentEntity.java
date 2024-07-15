@@ -38,9 +38,12 @@ public class CommentEntity extends BaseTimeEntity {
     private Boolean deleted;
     @Column(nullable = false)
     private Boolean updated;
+    @Column(nullable = false)
+    private boolean isAnonymous;
 
     public void update(CommentRequestDto commentRequestDto) {
         this.comment = commentRequestDto.getComment();
+        this.updated = true;
     }
     public void tempDelete(){
         this.numberingEntity = null;

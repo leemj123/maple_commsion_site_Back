@@ -31,10 +31,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -131,7 +128,12 @@ public class AuthenticationService {
                     }
                 })
                 .block();
-
+//        String AT = jwtTokenProvider.generateAccessToken(userEntity.getUserEmail(), userEntity.getUserRole());
+//        String RT = jwtTokenProvider.generateRefreshToken(userEntity.getUserEmail());
+//        userEntity.setRefreshToken(RT);
+//        servletResponse.setHeader("Authorization","Bearer " + AT);
+//        servletResponse.setHeader("RefreshToken","Bearer "+ RT);
+//        return ResponseEntity.ok().build();
     }
 
     @Transactional
@@ -148,10 +150,9 @@ public class AuthenticationService {
 
         UserEntity userEntity = UserEntity.builder()
                 .userRole(UserRole.USER)
-                .userName(uid)
+                .userName("ㅇㅇ" + this.randomNum())
                 .refreshToken(RT)
                 .userEmail(basicRegisterRequestDto.getUserEmail())
-                .isAnonymous(true)
                 .uid(uid)
                 .password(passwordEncoder.encode(basicRegisterRequestDto.getPassword()))
                 .build();
@@ -187,7 +188,7 @@ public class AuthenticationService {
                 .fetchOne();
 
         if (userEntity == null) {
-            userEntity = new UserEntity(userEmail);
+            userEntity = new UserEntity(userEmail, this.randomNum());
         }
         if (userEntity.getAccountBanEntity() != null) {
             throw new UnAuthorizedException("이 계정은 "+ userEntity.getAccountBanEntity().getFinPeriod()+"일까지 정지된 계정입니다.", ErrorCode.INVALID_ACCESS);
@@ -210,5 +211,9 @@ public class AuthenticationService {
         response.setHeader("RefreshToken","Bearer " + RT);
 
         return ResponseEntity.ok(tokens);
+    }
+    private int randomNum() {
+        Random random = new Random();
+        return random.nextInt(9000) + 1000;
     }
 }

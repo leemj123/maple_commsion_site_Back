@@ -23,12 +23,12 @@ public class CommentController {
     public NumberingWithCommentResponseDto getComment(@PathVariable("id") Long id, HttpServletRequest request){
         return commentService.getCommentOfBoard(id,request);
     }
-    @Operation(summary = "댓글 작성 API [commentId = null], [보안]")
+    @Operation(summary = "댓글 작성 API [commentId = null], [수정]")
     @PostMapping("{id}/comment")
     public String addCommentOfParent(@PathVariable Long id, @RequestBody CommentRequestDto commentRequestDto, HttpServletRequest request){
         return commentService.addCommentOfParent(id, commentRequestDto,request);
     }
-    @Operation(summary = "대댓글 작성 API [commentId = 부모댓글의 id], [보안]")
+    @Operation(summary = "대댓글 작성 API [commentId = 부모댓글의 id], [수정]")
     @PostMapping("/{id}/comment/{co-id}/child")
     public String addCommentOfChild(@PathVariable("id") Long id, @PathVariable("co-id") Long coId,
                                     @RequestBody ReplyRequestDto replyRequestDto, HttpServletRequest request){

@@ -143,7 +143,7 @@ public class CommentService {
             boardEntity.UpdateCommentNum(1);
             return "200ok";
         }
-        String userName = userEntity.isAnonymous() ? "ㅇㅇ" : userEntity.getUserName();
+        String userName = commentRequestDto.isAnonymous() ? "ㅇㅇ" : userEntity.getUserName();
 
         // 처음 댓글다는 유저면 넘버링 엔티티 만들고 코멘트 엔티티 생성
         numberingEntity = BoardCommentNumberingEntity.builder()
@@ -167,8 +167,6 @@ public class CommentService {
                 .build();
 
         commentRepository.save(commentEntity);
-// 트랜잭션의 지연 커밋: @Transactional 어노테이션은 메소드가 종료될 때까지 데이터베이스 트랜잭션을 커밋하지 않습니다.
-//  그러나 이것은 id 생성이 지연된다는 의미는 아닙니다. id는 엔티티가 영속성 컨텍스트에 저장될 때 생성되고, 이는 해당 메소드 내에서 즉시 접근할 수 있습니다.
 
         //보드 게시판의 댓글수 업데이트
         boardEntity.UpdateCommentNum(1);
@@ -241,7 +239,7 @@ public class CommentService {
             boardEntity.UpdateCommentNum(1);
             return "200ok";
         }
-        String userName = userEntity.isAnonymous() ? "ㅇㅇ" : userEntity.getUserName();
+        String userName = replyRequestDto.isAnonymous() ? "ㅇㅇ" : userEntity.getUserName();
         // 처음 댓글다는 유저면 넘버링 엔티티 만들고 리플 엔티티 생성
         numberingEntity = BoardCommentNumberingEntity.builder()
                 .boardEntity(boardEntity)

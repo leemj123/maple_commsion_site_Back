@@ -48,18 +48,21 @@ public class BoardEntity extends BaseTimeEntity{
 
     @Column
     private boolean hasImage;
+    @Column
+    private boolean isAnonymous;
 
     @Builder
     public BoardEntity (BoardRequestDto boardRequestDto, BoardTypeEntity typeEntity, UserEntity userEntity){
         this.htmlText = boardRequestDto.getHtmlText();
         this.text = boardRequestDto.getText();
         this.title = boardRequestDto.getTitle();
-        if (userEntity.isAnonymous())
+        if ( boardRequestDto.isAnonymous() )
             this.userName = "ㅇㅇ";
         else
             this.userName = userEntity.getUserName();
         this.userEntity = userEntity;
         this.type = typeEntity;
+        this.isAnonymous = boardRequestDto.isAnonymous();
     }
 
     public void setHasImage(boolean value) {
